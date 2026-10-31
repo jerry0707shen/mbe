@@ -2,7 +2,7 @@
 'use strict';
 window.MBECloud = {
   client: null, user: null, ready: false, error: '', files: [], busy: false,
-  message: '', recovery: false, timer: null, generation: 0, pending: new Set(),
+  message: '', recovery: false, timer: null, generation: 0, pending: new Set(), libraryLoading: false, libraryDone: 0, libraryTotal: 0,
   configured() { const c = window.MBE_CLOUD_CONFIG; return !!(c && c.url && c.publishableKey); },
   validConfig(c) {
     const u = new URL(c.url);
@@ -36,7 +36,7 @@ window.MBECloud = {
         if ((session?.user?.id || null) !== initial) {
           // Never merge one account's live state into another account's database.
           this.generation++; this.pending.clear();
-          if (typeof Sync !== 'undefined') { Sync.col = null; clearInterval(this.timer); }
+          if (typeof Sync !== 'undefined') { Sync.col = null; clearInterval(this.timer); clearInterval(this.libraryTimer); }
           setTimeout(async () => { await Local.flush(); location.reload(); }, 0);
         }
       });
@@ -87,9 +87,10 @@ window.MBECloud = {
     await pull();
     this.pull = pull;
     this.timer = setInterval(pull, 30000);
-    window.addEventListener('online', pull);
-    window.addEventListener('focus', pull);
-    await this.refreshFiles();
+    window.addEventListener('online', () => { pull(); this.autoLibrary(); });
+    window.addEventListener('focus', () => { pull(); this.autoLibrary(); });
+    this.libraryTimer = setInterval(() => this.autoLibrary(), 120000);
+    await this.autoLibrary();
     this.redraw();
   },
   accountPanel() {
@@ -103,7 +104,7 @@ window.MBECloud = {
       <button class="btn" type="button" data-cloud="signup" ${this.busy ? 'disabled' : ''}>注册账号</button>
       <button class="btn ghost" type="button" data-cloud="reset" ${this.busy ? 'disabled' : ''}>忘记密码</button></div></form>${msg}</section>`;
     return `<section class="card stack"><h2>账号与云同步</h2><p>${esc(this.user.email || '已登录')}</p>
-      <div class="syncpill"></div><p class="small muted">进度自动同步。PDF 和题库的备份状态请在下方查看；离线时继续保存在此账号的本机空间。</p>
+      <div class="syncpill"></div><p class="small muted">登录后自动准备全部云端题库，进度自动同步；查看原页时按需载入私有 PDF。已载入的内容会缓存以便下次使用。</p>
       <div class="row"><button class="btn" data-cloud="sync" ${this.busy ? 'disabled' : ''}>立即同步</button>
       <button class="btn" data-cloud="migrate" ${this.busy ? 'disabled' : ''}>导入本机旧数据</button>
       <button class="btn ghost" data-cloud="logout" ${this.busy ? 'disabled' : ''}>退出登录</button></div>
@@ -114,10 +115,10 @@ window.MBECloud = {
     if (!this.user || !this.ready) return '';
     const rows = this.files.map(f => `<tr><td>${esc(CODES[f.code] || f.code)}</td><td>${esc(f.file_name)}</td>
       <td>${f.pdf_path ? '题库及 PDF' : '仅题库'}</td><td>${esc(fmtFull(new Date(f.updated_at).getTime()))}</td>
-      <td><button class="btn" data-cloud="restore" data-code="${esc(f.code)}" ${this.busy ? 'disabled' : ''}>下载到本机</button></td></tr>`).join('');
-    return `<section class="card stack"><h2>私有云题库</h2><p class="small muted">仅此账号可以读取。已导入本机的 PDF 可随题库一起备份；在其他设备登录后，点击“下载到本机”即可使用。</p>
+      <td>${BANK[f.code] ? '已准备，可直接做题' : '正在自动准备'}</td></tr>`).join('');
+    return `<section class="card stack"><h2>私有云题库</h2><p class="small muted">仅此账号可以读取。换设备登录后会自动载入题目，无需手动下载或重新上传；PDF 原页在查看时自动载入。</p>
       <div class="row"><button class="btn primary" data-cloud="upload" ${this.busy ? 'disabled' : ''}>备份本机题库到云端</button>
-      <button class="btn" data-cloud="refresh" ${this.busy ? 'disabled' : ''}>刷新列表</button></div>
+      <button class="btn" data-cloud="refresh" ${this.busy ? 'disabled' : ''}>重新同步题库</button></div>
       <p class="small" data-cloud-message role="status" ${this.message ? '' : 'hidden'}>${esc(this.message)}</p>
       ${rows ? `<div class="scrollx"><table class="t"><thead><tr><th>科目</th><th>文件</th><th>云端内容</th><th>备份时间</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="small muted">尚未读取到云端题库。上传成功的题库才会列在这里。</p>'}</section>`;
   },
@@ -158,9 +159,9 @@ window.MBECloud = {
         }
         const { error } = await this.client.auth.signOut({ scope: 'local' }); if (error) throw error;
       } else if (action === 'sync') {
-        if (this.pull) await this.pull(); await Sync.kick();
+        if (this.pull) await this.pull(); await Sync.kick(); await this.autoLibrary();
         this.message = Sync.status === 'on' ? '进度已同步。' : '进度仍在同步或等待网络；本机记录已保留。';
-      } else if (action === 'refresh') { await this.refreshFiles(true); this.message = '云端题库列表已刷新。'; }
+      } else if (action === 'refresh') { await this.autoLibrary(true); }
       else if (action === 'upload') {
         let n = 0;
         for (const key of Object.keys(BANK)) { await this.uploadBank(key); n++; this.message = `已备份 ${n} 个题库`; }
@@ -195,9 +196,9 @@ window.MBECloud = {
     const rawPdf = sourcePdf || await IDB.get('pdfs', code);
     const pdf = rawPdf ? (rawPdf instanceof Blob ? rawPdf : new Blob([rawPdf], { type: 'application/pdf' })) : null;
     if (pdf && pdf.size > 50 * 1024 * 1024) throw new Error('单份 PDF 超过当前 50 MB 上传限制；本机原文件已保留');
-    const bankBlob = new Blob([JSON.stringify(bank)], { type: 'application/json' });
-    const bankHash = await this.digest(bankBlob), pdfHash = pdf ? await this.digest(pdf) : null;
     const prior = this.files.find(f => f.code === code);
+    const bankBlob = new Blob([JSON.stringify({...bank,hasPdf:!!(pdf || prior?.pdf_path)})], { type: 'application/json' });
+    const bankHash = await this.digest(bankBlob), pdfHash = pdf ? await this.digest(pdf) : null;
     if (!pdf && prior?.pdf_path && prior.bank_sha256 !== bankHash) throw new Error('云端已有此科的其他版本及 PDF，请保留本机原 PDF 后再上传；云端原文件未改动');
     const root = uid + '/' + code + '/';
     const put = async (path, blob, contentType) => {
@@ -214,6 +215,7 @@ window.MBECloud = {
       pdf_path: pdf ? root + pdfHash + '.pdf' : (prior?.pdf_path || null), pdf_sha256: pdfHash || prior?.pdf_sha256 || null, size: bank.size,
       updated_at: new Date().toISOString() }, { onConflict: 'user_id,code' });
     if (error) throw error;
+    await IDB.put('kv', '_library_' + code, { bank_sha256: bankHash, pdf_sha256: pdfHash || prior?.pdf_sha256 || null });
   },
   async afterImport(entries) {
     if (!this.user) return;
@@ -252,6 +254,66 @@ window.MBECloud = {
       if (pdf) t.objectStore('pdfs').put(pdf, code); else t.objectStore('pdfs').delete(code);
       t.oncomplete = resolve; t.onabort = t.onerror = () => reject(t.error || new Error('本机空间不足'));
     });
+  },
+  async downloadVerified(path, expected) {
+    const { data, error } = await this.client.storage.from('mbe-private').download(path);
+    if (error) throw error;
+    if (await this.digest(data) !== expected) throw new Error('云端文件校验失败，请稍后重试');
+    return data;
+  },
+  validManifest(f) {
+    if (!this.user || !CODES[f.code]) return false;
+    const root=this.user.id+'/'+f.code+'/';
+    return f.bank_path===root+f.bank_sha256+'.json' && (!f.pdf_path || f.pdf_path===root+f.pdf_sha256+'.pdf');
+  },
+  async autoLibrary(force=false) {
+    if (!this.user || this.libraryLoading || ACTIVE || IMPORTING) return;
+    const generation=this.generation;
+    this.libraryLoading=true;this.libraryDone=0;
+    try {
+      await this.refreshFiles(true);this.libraryTotal=this.files.length;renderSync();
+      let changed=false;
+      for(const f of this.files) {
+        if(generation!==this.generation)return;
+        if(!this.validManifest(f))throw new Error('云端题库路径不匹配');
+        const marker=await IDB.get('kv','_library_'+f.code);
+        if(!force && marker?.bank_sha256===f.bank_sha256 && BANK[f.code]) {this.libraryDone++;continue;}
+        const blob=await this.downloadVerified(f.bank_path,f.bank_sha256),bank=JSON.parse(await blob.text());
+        if(bank.code!==f.code || !Array.isArray(bank.qs) || bank.qs.some(q=>typeof q.id!=='string'||!q.id.startsWith(f.code+'-')))throw new Error('云端题库结构不匹配');
+        if(generation!==this.generation || ACTIVE)return;
+        const previous=await IDB.get('banks',f.code);
+        const value={...bank,hasPdf:!!(f.pdf_path || (await IDB.get('pdfs',f.code)))};
+        const meta={bank_sha256:f.bank_sha256,pdf_sha256:f.pdf_sha256};
+        if(IDB.db)await new Promise((resolve,reject)=>{
+          const t=IDB.db.transaction(['banks','kv'],'readwrite');
+          if(previous && marker?.bank_sha256!==f.bank_sha256)t.objectStore('kv').put(previous,'_bank_archive_'+f.code+'_'+now());
+          t.objectStore('banks').put(value,f.code);t.objectStore('kv').put(meta,'_library_'+f.code);
+          t.oncomplete=resolve;t.onabort=t.onerror=()=>reject(t.error||new Error('本机缓存空间不足'));
+        });
+        else {await IDB.put('banks',f.code,value);await IDB.put('kv','_library_'+f.code,meta);}
+        changed=true;this.libraryDone++;renderSync();
+      }
+      if(changed)await loadBanks();
+      this.message=this.files.length ? '云端题库已自动准备好，可直接开始做题；查看原页时自动载入 PDF。' : '云端暂无题库，请先导入一次 PDF。';
+    }catch(e){this.message='部分题库尚未准备好：'+e.message+'。已载入的题目可继续使用。';}
+    finally{this.libraryLoading=false;renderSync();this.redraw();}
+  },
+  async pdfBuffer(code) {
+    let local=await IDB.get('pdfs',code);
+    if(!this.user)return local||null;
+    if(!this.files.length)await this.refreshFiles(true);
+    const f=this.files.find(f=>f.code===code);
+    if(!f?.pdf_path)return local||null;
+    if(!this.validManifest(f))throw new Error('原 PDF 路径不匹配');
+    if(local && await this.digest(local)===f.pdf_sha256)return local;
+    const generation=this.generation;
+    const blob=await this.downloadVerified(f.pdf_path,f.pdf_sha256),buf=await blob.arrayBuffer();
+    if(generation!==this.generation)throw new Error('账号已变更，请重试');
+    try {
+      if(local)await IDB.put('pdfs','_archive_'+code+'_'+await this.digest(local),local);
+      await IDB.put('pdfs',code,buf);
+    }catch(e){this.message='原页已载入，但浏览器未能保存离线缓存。';}
+    return buf;
   },
   async importGuest() {
     const guest = await new Promise((resolve, reject) => {

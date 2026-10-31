@@ -29,7 +29,7 @@ begin
       order by v->>0, n
     ) events;
   result := jsonb_set(result, '{a}', attempts);
-  foreach field in array array['r','n','f','w'] loop
+  foreach field in array array['r','n','f','w','g'] loop
     if b ? field and (not (result ? field) or (b->field->>1)::numeric > (result->field->>1)::numeric) then
       result := jsonb_set(result, array[field], b->field);
     end if;
