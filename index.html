@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <style>
+details.home-detail > summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:600}
+details.home-detail[open] > summary{margin-bottom:12px}
 #section-filter,#question-section{width:100%;min-height:44px;padding:10px;border:1px solid var(--line2);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
 
 :root{
@@ -736,7 +738,7 @@ function poolIds(codes, pool) {
 function dueIds() { const t = today(); const out = []; for (const [qid, r] of Object.entries(ST.recs)) { if (!Q.has(qid)) continue; const w = wbState(r); if (w.inWB && w.due !== null && w.due <= t) out.push(qid); } return out; }
 
 // ================= shell & router =================
-const TABS = [['home', '组卷', I.plus], ['wrongbook', '错题本', I.book], ['stats', '统计', I.chart], ['library', '题库', I.folder], ['more', '更多', I.more]];
+const TABS = [['home', '做题', I.plus], ['wrongbook', '错题本', I.book], ['stats', '统计', I.chart], ['library', '题库', I.folder], ['more', '更多', I.more]];
 let VIEW = 'home'; let ACTIVE = null; let PAUSED = false;
 function applyTheme() { const t = ST.cfg.theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
 function shell(inner) {
@@ -764,6 +766,8 @@ let softT = null;
 function softRender() { clearTimeout(softT); softT = setTimeout(() => { if (!ACTIVE && !IMPORTING && !document.activeElement?.matches('textarea,input')) render(); }, 300); }
 
 // ================= home =================
+const HOME_DETAILS = {};
+function answeredCount(s) { return (s.qids || []).filter(q => s.mode === 'exam' ? !!s.ans?.[q] : !!s.sub?.[q]).length; }
 function groupsAll() { return ST.cfg.ncbeOpen && BANK.NCBE ? GROUPS.concat([{ k: 'NCBE', n: 'NCBE 官方题', c: ['NCBE'] }]) : GROUPS; }
 function bankEmpty() { return !Object.keys(BANK).length; }
 function viewHome() {
@@ -773,18 +777,18 @@ function viewHome() {
   const avail = poolIds(codes, c.pool).length; const total = Math.round(c.count * c.pace * 60);
   const chips = groupsAll().filter((g) => g.c.some((x) => BANK[x])).map((g) => { const n = g.c.reduce((s, x) => s + (BANK[x]?.n || 0), 0); return `<button type="button" class="chip" data-grp="${g.k}" aria-pressed="${c.groups.includes(g.k)}">${g.n}<span class="n">${n}</span></button>`; }).join('');
   const pools = [['unseen', '未做过'], ['wrong', '做错过'], ['flag', '已标记'], ['wb', '错题本中'], ['all', '全部']].map(([k, n]) => `<button type="button" data-pool="${k}" aria-pressed="${c.pool === k}">${n}</button>`).join('');
-  const active = Object.values(ST.sessions).filter((s) => !s.done).sort((a, b) => b.u - a.u).slice(0, 3);
-  const cont = active.length ? active.map((s) => { const ans = s.mode === 'exam' ? Object.keys(s.ans).length : Object.keys(s.sub).length; return `<div class="row between"><div><div>${esc(s.title)}</div><div class="small muted">${s.kind === 'free' ? '自由做题' : s.mode === 'exam' ? '考试模式' : '练习模式'} · 本轮已做 ${ans} / ${s.qids.length}${s.mode === 'exam' && s.lim ? ' · 剩余 ' + fmtSec(s.lim - s.el) : ''}</div></div><button class="btn ghost" data-resume="${s.id}">${s.kind !== 'free' && s.mode !== 'exam' && s.qids.every((q) => s.sub[q]) ? '看成绩' : '继续'}</button></div>`; }).join('') : '<div class="small muted">没有未完成的题组</div>';
+  const active = Object.values(ST.sessions).filter((s) => !s.done && answeredCount(s) > 0).sort((a, b) => b.u - a.u).slice(0, 3);
+  const cont = active.length ? active.map((s) => { const ans = answeredCount(s); return `<div class="row between"><div><div>${esc(s.title)}</div><div class="small muted">${s.kind === 'free' ? '自由做题' : s.mode === 'exam' ? '考试模式' : '练习模式'} · 本轮已做 ${ans} / ${s.qids.length}${s.mode === 'exam' && s.lim ? ' · 剩余 ' + fmtSec(s.lim - s.el) : ''}</div></div><button class="btn ghost" data-resume="${s.id}">${s.kind !== 'free' && s.mode !== 'exam' && s.qids.every((q) => s.sub[q]) ? '看成绩' : '继续'}</button></div>`; }).join('') : '<div class="small muted">没有未完成的题组</div>';
   const due = dueIds().length;
   const prog = GROUPS.filter((g) => g.c.some((x) => BANK[x])).map((g) => { let n = 0, d = 0, ok = 0; for (const code of g.c) for (const q of BANK[code]?.qs || []) { n++; const a = ST.recs[q.id]?.a; if (a && a.length) { d++; if (a[0][3]) ok++; } } return `<div class="prog"><div class="row between small"><span>${g.n}</span><span class="muted">${d} / ${n} · 首做正确率 ${pct(ok, d)}</span></div><div class="bar"><i style="width:${n ? (d / n) * 100 : 0}%"></i></div></div>`; }).join('');
   const mock = BANK.NCBE ? [1, 2].map((k) => { const s = Object.values(ST.sessions).filter((x) => x.kind === 'mock' + k).sort((a, b) => b.u - a.u)[0]; const st = s ? (s.done ? `已完成 · ${mockScore(s)}` : '进行中') : '100 题 · 3 小时'; return `<button class="btn" style="justify-content:space-between" data-mock="${k}"><span>第 ${k} 场</span><span class="small muted">${st}</span></button>`; }).join('') : '<div class="small muted">导入 NCBE 文件后可用</div>';
   const bk = backupBanner();
   return `${bk}<div class="cols" style="margin-top:${bk ? 16 : 0}px"><section class="colmain"><div class="card stack" style="gap:22px">
-    <h1>开始做题</h1>
-    <div class="banner"><div><b>自由做题</b><div class="small">无需设置题数或倒计时，按下方科目和章节连续练习，随时退出保存。</div></div><button class="btn primary big" id="startfree" ${poolIds(codes, 'all').length ? '' : 'disabled'}>立即开始自由做题</button></div>
+    <h1>做题</h1>
     <div class="field"><div class="label">科目（可多选）</div><div class="chips">${chips}</div></div>
-    <div class="field"><label class="label" for="section-filter">按伴读章节（包含自动建议，可在题目中调整）</label>${window.MBESections.picker(codes)}<p class="small muted">${window.MBESections.summary()}</p><button class="btn ghost" data-act="allgroups">选择全部科目</button></div>
-    <h2>定量练习／考试</h2>
+    <div class="field"><label class="label" for="section-filter">伴读章节</label>${window.MBESections.picker(codes)}<div class="small muted">自动建议可在题目中调整</div><div><button class="btn ghost" data-act="allgroups">选择全部科目</button></div></div>
+    <div class="row"><button class="btn primary big" id="startfree" ${poolIds(codes, 'all').length ? '' : 'disabled'}>开始自由做题</button><span class="small muted">不限题数 · 随时退出续做</span></div>
+    <details class="home-detail" data-home-detail="practice" ${HOME_DETAILS.practice ? 'open' : ''}><summary>定量练习与考试</summary><div class="stack" style="gap:18px">
     <div class="field"><div class="label">题池</div><div class="seg">${pools}</div><div class="small muted">当前条件下可用 ${avail} 题</div></div>
     <div class="field"><div class="label">模式</div><div class="modes">
       <button type="button" class="mode" data-mode="practice" aria-pressed="${c.mode === 'practice'}"><b>练习模式</b><span>每题提交后马上看对错和解析</span></button>
@@ -794,13 +798,14 @@ function viewHome() {
       <div class="field"><label class="label" for="qpace">每题时间（分钟）</label><input id="qpace" class="num" type="number" min="0.5" max="10" step="0.1" value="${c.pace}"></div>
       <div class="small muted" style="padding-bottom:10px">总时长 ${fmtSec(total)}${c.mode === 'practice' ? '（练习模式只计时不限时）' : ''}</div></div>
     <div class="row" style="gap:6px 26px"><label class="check"><input type="checkbox" id="shuf" ${c.shuffle ? 'checked' : ''}>题目乱序</label><label class="check"><input type="checkbox" id="askc" ${c.askConf ? 'checked' : ''}>作答时记录把握（确定 / 犹豫 / 猜的）</label></div>
-    <div class="row"><button class="btn primary big" id="start" ${avail ? '' : 'disabled'}>开始做题</button><span class="small muted">中途退出会自动保存</span></div>
+    <div class="row"><button class="btn primary big" id="start" ${avail ? '' : 'disabled'}>开始定量练习／考试</button></div>
+    <p class="small muted">${window.MBESections.summary()}</p></div></details>
   </div></section>
   <aside class="colside">
-    <section class="card stack"><h2>继续上次</h2>${cont}</section>
-    <section class="card stack"><h2>今天要复习</h2><div class="row" style="align-items:baseline;gap:8px"><span class="big-n" style="color:var(--bad)">${due}</span><span class="small muted">道错题到期（含犹豫或猜对的）</span></div><div class="small muted">间隔 1 / 3 / 7 天推回，连续做对 ${ST.cfg.exit} 次移出</div><div><button class="btn ghost" id="dueGo" ${due ? '' : 'disabled'}>开始复习</button></div></section>
-    <section class="card stack"><h2>NCBE 全真模考</h2><div class="small muted">官方 200 题默认不进日常题池</div>${mock}</section>
-    <section class="card stack" style="gap:12px"><h2>各科进度</h2>${prog}</section>
+    ${active.length ? `<section class="card stack"><h2>继续上次</h2>${cont}</section>` : ''}
+    ${due ? `<section class="card stack"><h2>今天要复习</h2><div class="row" style="align-items:baseline;gap:8px"><span class="big-n" style="color:var(--bad)">${due}</span><span class="small muted">道错题到期（含犹豫或猜对的）</span></div><div class="small muted">间隔 1 / 3 / 7 天推回，连续做对 ${ST.cfg.exit} 次移出</div><div><button class="btn ghost" id="dueGo" ${due ? '' : 'disabled'}>开始复习</button></div></section>` : ''}
+    <details class="card home-detail" data-home-detail="mock" ${HOME_DETAILS.mock ? 'open' : ''}><summary>NCBE 全真模考</summary><div class="stack"><div class="small muted">官方 200 题默认不进日常题池</div>${mock}</div></details>
+    <details class="card home-detail" data-home-detail="progress" ${HOME_DETAILS.progress ? 'open' : ''}><summary>各科进度</summary><div class="stack" style="gap:12px">${prog}</div></details>
   </aside></div>`;
 }
 function mockScore(s) { let ok = 0; for (const q of s.qids) if (s.ans[q] && s.ans[q] === Q.get(q)?.ans) ok++; return `${ok} / ${s.qids.length}`; }
@@ -916,6 +921,7 @@ function viewMore() {
 
 // ================= view bindings =================
 function bindView() {
+  document.querySelectorAll('[data-home-detail]').forEach(el => { el.ontoggle = () => { HOME_DETAILS[el.dataset.homeDetail] = el.open; }; });
   const app = $('#app');
   app.onclick = async (e) => {
     const b = e.target.closest('button,[data-act]'); if (!b) return;
