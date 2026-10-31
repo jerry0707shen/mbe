@@ -237,7 +237,10 @@ details.refs ul{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--ink2
 </head>
 <body>
 <div id="app"></div>
-<script type="module">
+<script src="./cloud-config.js"></script>
+<script src="./cloud.js"></script>
+<script>
+'use strict';
 // ===== MBE QBank PDF parser (shared by browser app and node tests) =====
 // Builds lines from pdf.js text items, segments questions by option pages,
 // infers the correct answer by elimination of "(Choice X)" references.
@@ -475,7 +478,7 @@ const IDB = {
   open() {
     return new Promise((res) => {
       let r;
-      try { r = indexedDB.open('mbe-qbank', 1); } catch (e) { this.mem = { banks: {}, pdfs: {}, kv: {} }; return res(false); }
+      try { r = indexedDB.open(window.MBECloud?.databaseName() || 'mbe-qbank', 1); } catch (e) { this.mem = { banks: {}, pdfs: {}, kv: {} }; return res(false); }
       r.onupgradeneeded = () => { const d = r.result; for (const n of ['banks', 'pdfs', 'kv']) if (!d.objectStoreNames.contains(n)) d.createObjectStore(n); };
       r.onsuccess = () => { this.db = r.result; res(true); };
       r.onerror = () => { this.mem = { banks: {}, pdfs: {}, kv: {} }; res(false); };
@@ -513,7 +516,7 @@ function chunkRecs(c) { const o = {}; for (const q of CH.get(c) || []) if (ST.re
 function mergeRec(a, b) {
   if (!a) return clone(b); if (!b) return a;
   const out = { ...a }; const seen = new Set((a.a || []).map((x) => x[0])); const at = [...(a.a || [])];
-  for (const x of b.a || []) if (!seen.has(x[0])) at.push(x);
+  for (const x of b.a || []) if (!seen.has(x[0])) { at.push(x); seen.add(x[0]); }
   at.sort((x, y) => x[1] - y[1]); out.a = at;
   for (const k of ['r', 'n', 'f', 'w']) if (b[k] && (!a[k] || b[k][1] > a[k][1])) out[k] = b[k];
   if (!out.h && b.h) out.h = b.h;
@@ -526,11 +529,11 @@ function docBody(key) {
   return null;
 }
 const Local = {
-  dirty: new Set(), t: null,
+  dirty: new Set(), t: null, warned: false,
   mark(k) { this.dirty.add(k); clearTimeout(this.t); this.t = setTimeout(() => this.flush(), 400); },
   async flush() {
     const ks = [...this.dirty]; this.dirty.clear();
-    for (const k of ks) { const b = docBody(k); try { if (b) await IDB.put('kv', k, clone(b)); } catch (e) { /* storage full */ } }
+    for (const k of ks) { const b = docBody(k); try { if (b) await IDB.put('kv', k, clone(b)); } catch (e) { this.dirty.add(k); if (!this.warned) { this.warned = true; toast('本机存储写入失败，请尽快导出进度备份并检查浏览器空间'); } } }
   },
 };
 function touchRec(qid) { indexRec(qid); const k = 'q_' + chunkOf(qid); Local.mark(k); Sync.mark(k); }
@@ -550,22 +553,7 @@ async function loadLocal() {
 const Sync = {
   col: null, status: 'local', dirty: new Set(), busy: false, ro: false, seeded: false, lastOk: 0, t: null,
   set(s) { this.status = s; renderSync(); },
-  async init() {
-    if (!window.claude || typeof window.claude.use !== 'function') { this.set('local'); return; }
-    this.set('connecting');
-    try {
-      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
-      if (!db || !user) { this.set('local'); return; }
-      const uid = await user.id();
-      if (!uid) { this.set('local'); return; }
-      this.col = db.collection('data/users/' + uid);
-      const to = setTimeout(() => { if (this.status === 'connecting') this.set('offline'); }, 10000);
-      this.col.onSnapshot((snap) => {
-        this.onSnap(snap);
-        if (!snap.metadata.fromCache) { clearTimeout(to); if (!this.ro && this.status !== 'syncing') this.set('on'); this.lastOk = now(); this.kick(); }
-      }, (err) => { clearTimeout(to); this.set(err && err.code === 'revoked' ? 'local' : 'error'); });
-    } catch (e) { this.set('local'); }
-  },
+  async init() { await window.MBECloud.connect(this); },
   onSnap(snap) {
     let changed = false; const remote = new Set();
     for (const d of snap.docs) {
@@ -607,7 +595,7 @@ const Sync = {
     catch (e) {
       const c = e && e.code; this.busy = false;
       if (c === 'invalid_argument' || c === 'not_granted') { this.ro = true; this.set('readonly'); return; }
-      if (c === 'quota_exceeded') { this.set('error'); toast('云端空间已满，进度仍保存在本机'); return; }
+      if (c === 'quota_exceeded') { this.dirty.add(k); this.set('error'); toast('云端空间已满，进度仍保存在本机'); return; }
       this.dirty.add(k); this.set('offline'); setTimeout(() => this.kick(), 5000 + Math.random() * 4000); return;
     }
     this.busy = false;
@@ -615,7 +603,8 @@ const Sync = {
   },
 };
 const SYNC_TEXT = {
-  local: ['', '仅本机保存'], connecting: ['warn', '连接云端…'], on: ['on', '已云同步'], syncing: ['warn', '同步中…'],
+  unconfigured: ['', '云同步尚未启用'], signedout: ['', '未登录 · 仅本机保存'],
+  local: ['', '仅本机保存'], connecting: ['warn', '连接云端…'], on: ['on', '进度已同步'], syncing: ['warn', '同步中…'],
   offline: ['warn', '离线，联网后自动同步'], readonly: ['', '此账号仅本机保存'], error: ['warn', '同步出错，进度在本机'],
 };
 function renderSync() { const [c, t] = SYNC_TEXT[Sync.status] || SYNC_TEXT.local; for (const el of $$('.syncpill')) el.innerHTML = `<span class="dot ${c}"></span>${t}`; }
@@ -822,16 +811,17 @@ function viewLibrary() {
   const total = Object.values(BANK).reduce((s, b) => s + b.n, 0);
   const picked = PICKED.map((p, i) => `<div class="imp"><span class="nm" title="${esc(p.file.name)}">${esc(p.file.name)}</span><label class="sr" for="pc${i}">科目</label><select id="pc${i}" data-pick="${i}"><option value="">选择科目</option>${Object.entries(CODES).map(([k, n]) => `<option value="${k}" ${p.code === k ? 'selected' : ''}>${n}</option>`).join('')}</select><span class="small muted" id="pp${i}"></span></div>`).join('');
   return `<div class="cols"><section class="colmain">
+    ${window.MBECloud.libraryPanel()}
     <div class="card stack" style="gap:16px"><h1>导入题库 PDF</h1>
-      <p class="muted" style="margin:0">选择 UWorld 分科 PDF 和 NCBE 200 题 PDF（可一次多选）。解析在这台设备上完成，题目只保存在本机，不上传云端；换设备时在那台设备上再导入一次。</p>
+      <p class="muted" style="margin:0">选择 UWorld 分科 PDF 和 NCBE 200 题 PDF（可一次多选）。解析在这台设备上完成。登录后可将题库和 PDF 备份到私有云，在其他设备登录后下载；未登录时只保存在本机。</p>
       <div class="row"><label class="btn ghost" for="pdfin">选择 PDF 文件</label><input id="pdfin" class="sr" type="file" accept=".pdf,application/pdf" multiple></div>
-      ${PICKED.length ? `<div class="importlist">${picked}</div><label class="check"><input type="checkbox" id="keeppdf" checked>保存原 PDF（用于“查看原页”，约占 50 MB）</label><div class="row"><button class="btn primary big" id="doimport" ${IMPORTING ? 'disabled' : ''}>开始导入</button><span class="small muted" id="impstat"></span></div>` : ''}
+      ${PICKED.length ? `<div class="importlist">${picked}</div><label class="check"><input type="checkbox" id="keeppdf" checked>保存原 PDF 到本机（用于“查看原页”）</label>${window.MBECloud.user ? '<label class="check"><input type="checkbox" id="cloudpdf" checked>同时备份题库和 PDF 到此账号的私有云</label>' : ''}<div class="row"><button class="btn primary big" id="doimport" ${IMPORTING ? 'disabled' : ''}>开始导入</button><span class="small muted" id="impstat"></span></div>` : ''}
     </div>
     <div class="card stack"><div class="row between"><h2>已导入</h2><span class="small muted">共 ${total} 题</span></div>${rows ? `<div class="scrollx"><table class="t"><thead><tr><th>科目</th><th>文件</th><th>题数</th><th>答案已识别</th><th>导入时间</th><th>原 PDF</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="muted small">还没有导入任何题库。</div>'}</div>
   </section><aside class="colside">
     <section class="card stack"><h2>NCBE 官方题</h2><p class="small muted" style="margin:0">建议留作全真模考。打开后这 200 题也会出现在日常组卷的题池里。</p><label class="check"><input type="checkbox" id="ncbeopen" ${ST.cfg.ncbeOpen ? 'checked' : ''}>放进日常题池</label></section>
     <section class="card stack"><h2>关于答案</h2><p class="small muted" style="margin:0">PDF 里没有直接标出答案。程序根据解析中逐个讨论的错误选项（Choice X）反推正确答案，未能唯一确定的题会标出来并从题池排除。</p></section>
-    <section class="card stack"><h2>手机上的注意</h2><p class="small muted" style="margin:0">iPhone 可能在长期不用时清理网页的本机存储。题库被清理后重新导入即可，做题进度在云端，不受影响。</p></section>
+    <section class="card stack"><h2>手机上的注意</h2><p class="small muted" style="margin:0">浏览器可能清理本机存储。只有显示已同步的进度、列表中备份成功的题库和 PDF 才能从云端恢复；未登录或尚未上传的数据请另存备份。</p></section>
   </aside></div>`;
 }
 
@@ -901,10 +891,10 @@ function viewStats() {
 // ================= more =================
 function viewMore() {
   const c = ST.cfg; const st = SYNC_TEXT[Sync.status] || SYNC_TEXT.local;
-  const syncNote = { on: '做题记录、错题本、笔记和未完成的题组会同步到你登录的 Claude 账号，换设备打开同一个链接即可继续。', syncing: '正在同步。', connecting: '正在连接云端。', offline: '暂时连不上云端，进度先存在本机，联网后自动补传。', readonly: '当前账号对这个页面只有查看权限，进度只存在本机。可以用下面的备份文件在账号之间转移进度。', local: '这里无法使用云同步，进度只存在本机。请定期导出备份。', error: '同步出错，进度先存在本机。' }[Sync.status] || '';
   return `<div class="cols"><section class="colmain">
-    <div class="card stack"><h2>云同步</h2><div class="syncpill"></div><p class="small muted" style="margin:0">${syncNote}</p><p class="small muted" style="margin:0">云端只保存做题记录，不保存题目。</p></div>
-    <div class="card stack"><h2>备份与恢复</h2><p class="small muted" style="margin:0">备份文件（JSON）包含全部做题记录、错题本、笔记和题组，不含题目。导入时与现有记录合并，不会覆盖。</p>
+    ${window.MBECloud.accountPanel()}
+    ${window.MBECloud.libraryPanel()}
+    <div class="card stack"><h2>备份与恢复</h2><p class="small muted" style="margin:0">备份文件（JSON）包含当前本机空间的做题记录、错题本、笔记和题组，不含题目或 PDF。导入时与现有记录合并。PDF 和题库可单独备份到私有云。</p>
       <div class="row"><button class="btn primary" data-act="backup">${I.dl}导出备份</button><label class="btn" for="bkin">导入备份</label><input id="bkin" class="sr" type="file" accept=".json,application/json"></div>
       <div class="small muted">${c.lastBackup ? '上次导出：' + fmtFull(c.lastBackup) : '还没有导出过备份'}</div></div>
     <div class="card stack"><h2>导出</h2><div class="row"><button class="btn" data-act="xlsx">${I.dl}全部作答记录（Excel）</button><button class="btn" data-act="xdocx-all">${I.dl}整本错题本（Word）</button></div><p class="small muted" style="margin:0">需要 PDF 时，用 Word 打开后另存为 PDF。</p></div>
@@ -913,7 +903,7 @@ function viewMore() {
       <div class="field"><div class="label">外观</div><div class="seg">${[['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']].map(([k, n]) => `<button type="button" data-theme="${k}" aria-pressed="${c.theme === k}">${n}</button>`).join('')}</div></div>
       <div class="field"><div class="label">移出错题本的条件</div><div class="seg">${[2, 3].map((k) => `<button type="button" data-exit="${k}" aria-pressed="${c.exit === k}">按期连续做对 ${k} 次</button>`).join('')}</div></div>
     </div>
-    <div class="card stack"><h2>在其他账号使用</h2><p class="small muted" style="margin:0">换账号打开时，进度不会自动出现在新账号里：先在这里导出备份，再到新账号打开的页面里导入。题库需要在新设备上重新导入 PDF。</p></div>
+    <div class="card stack"><h2>在其他账号使用</h2><p class="small muted" style="margin:0">每个账号使用独立的本机空间和私有云数据。换设备登录同一账号可同步进度，并下载云端题库。不同账号之间需要自行导出、导入备份；未登录时的旧数据不会自动上传到账号。</p></div>
   </aside></div>`;
 }
 
@@ -923,6 +913,7 @@ function bindView() {
   app.onclick = async (e) => {
     const b = e.target.closest('button,[data-act]'); if (!b) return;
     const d = b.dataset;
+    if (d.cloud) { await window.MBECloud.action(d.cloud, d.code); return; }
     if (d.grp) { const g = ST.cfg.groups; const i = g.indexOf(d.grp); if (i >= 0) g.splice(i, 1); else g.push(d.grp); touchCfg(); render(); }
     else if (d.pool) { ST.cfg.pool = d.pool; touchCfg(); render(); }
     else if (d.mode) { ST.cfg.mode = d.mode; touchCfg(); render(); }
@@ -943,6 +934,10 @@ function bindView() {
     else if (d.act === 'xdocx-all') { const ids = Object.entries(ST.recs).filter(([q, r]) => Q.has(q) && wbState(r).inWB).map(([q]) => q); exportDocx(ids, '错题本（全部在本）'); }
     else if (d.act === 'more') { WBF.limit += 60; render(); }
   };
+  app.onsubmit = (e) => {
+    if (e.target.id === 'cloud-login') { e.preventDefault(); window.MBECloud.auth('login'); }
+    if (e.target.id === 'cloud-recovery') { e.preventDefault(); window.MBECloud.action('password'); }
+  };
   app.onchange = (e) => {
     const t = e.target;
     if (t.id === 'qcount') { ST.cfg.count = Math.max(1, Math.min(200, parseInt(t.value, 10) || 33)); touchCfg(); render(); }
@@ -962,11 +957,12 @@ async function doImport() {
   const entries = PICKED.filter((p) => p.code);
   if (!entries.length) { toast('请先为文件选择科目'); return; }
   const codes = entries.map((e) => e.code); if (new Set(codes).size !== codes.length) { toast('有两个文件选了同一个科目'); return; }
-  IMPORTING = true; const keep = $('#keeppdf')?.checked; $('#doimport').disabled = true;
+  IMPORTING = true; const keep = $('#keeppdf')?.checked, toCloud = $('#cloudpdf')?.checked; $('#doimport').disabled = true;
   try { await navigator.storage?.persist?.(); } catch (e) { /* ignore */ }
   try {
     const done = await importFiles(entries, keep, (i, p, n) => { const idx = PICKED.indexOf(entries[i]); const el = $('#pp' + idx); if (el) el.textContent = `${p} / ${n} 页`; const s = $('#impstat'); if (s) s.textContent = `正在解析第 ${i + 1} / ${entries.length} 个文件`; });
-    IMPORTING = false; PICKED = []; render(); toast('导入完成：' + done.map(([c, n]) => `${CODES[c]} ${n} 题`).join('，'));
+    if (toCloud) await window.MBECloud.afterImport(entries);
+    IMPORTING = false; PICKED = []; render(); toast('本机导入完成：' + done.map(([c, n]) => `${CODES[c]} ${n} 题`).join('，'));
   } catch (err) { IMPORTING = false; const s = $('#impstat'); if (s) s.textContent = '导入失败：' + (err && err.message); $('#doimport').disabled = false; }
 }
 function confirmBox(msg, okText = '确定', cancelText = '取消') {
@@ -1245,7 +1241,7 @@ async function importBackup(file) {
   } catch (e) { toast('导入失败：' + e.message); }
 }
 let JSZIPP = null, DOCXP = null;
-function loadScript(src, globalName) { return new Promise((res, rej) => { if (window[globalName]) return res(window[globalName]); const s = document.createElement('script'); s.src = src; s.onload = () => res(window[globalName]); s.onerror = () => rej(new Error('脚本加载失败')); document.head.appendChild(s); }); }
+function loadScript(src, globalName) { return new Promise((res, rej) => { if (window[globalName]) return res(window[globalName]); const s = document.createElement('script'); const t = setTimeout(() => { s.remove(); rej(new Error('脚本加载超时')); }, 20000); s.src = src; s.onload = () => { clearTimeout(t); res(window[globalName]); }; s.onerror = () => { clearTimeout(t); rej(new Error('脚本加载失败')); }; document.head.appendChild(s); }); }
 const loadJSZip = () => (JSZIPP = JSZIPP || loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip'));
 const loadDocx = () => (DOCXP = DOCXP || loadScript('https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.iife.js', 'docx'));
 const xmlEsc = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1304,7 +1300,9 @@ async function exportDocx(ids, title) {
 // ================= init =================
 async function init() {
   $('#app').innerHTML = '<div class="page"><div class="card empty"><div class="muted">正在加载…</div></div></div>';
-  await IDB.open();
+  await window.MBECloud.prepare();
+  const durable = await IDB.open();
+  if (!durable) setTimeout(() => toast('此浏览器无法持久保存，本机数据离开后可能丢失；请使用正常浏览模式并导出备份'), 500);
   try { await loadLocal(); } catch (e) { /* first run */ }
   applyTheme();
   try { await loadBanks(); } catch (e) { /* none */ }
