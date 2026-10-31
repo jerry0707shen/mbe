@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MBE 刷题器</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<meta name="theme-color" content="#31594d">
 <style>
 details.home-detail > summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:600}
 details.home-detail[open] > summary{margin-bottom:12px}
@@ -236,6 +235,63 @@ details.refs ul{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--ink2
 .imp .nm{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
 .imp select{min-height:38px;border:1px solid var(--line2);border-radius:6px;background:var(--surface);padding:0 8px}
 @media (prefers-reduced-motion:no-preference){ .toast{transition:opacity .2s} }
+
+/* Quiet book typography; built-in fonts keep first paint independent of font CDNs. */
+:root{--bg:#f2eee5;--surface:#fffdf8;--line:#ded9cd;--line2:#bcbfaf;--ink:#2e342e;--ink2:#50594e;--muted:#687061;--accent:#31594d;--accent-weak:#e8eee5;--accent-line:#aebfae;--accent-ink:#fffdf8;--ok:#35664b;--ok-weak:#e4eee2;--bad:#994b30;--bad-weak:#f7e8dc;--bad-ink:#8e402c;--flag:#9a6a2c;--mark:#efe0a1;--mark-ink:#302e22;--bar:#263e35;--bar-ink:#faf7ed;--bar-muted:#d5dece;--bar-line:#758b7c;--tbl:#f3f0e7;--sans:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',system-ui,sans-serif;--serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Songti SC','STSong','Noto Serif CJK SC',serif;--reading-size:20px;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);padding-top:var(--safe-top)}
+:root[data-theme=dark]{--bg:#191e1a;--surface:#232b25;--line:#414c40;--line2:#647260;--ink:#e8e5d8;--ink2:#d1d3c4;--muted:#b2b4a6;--accent:#b0cdb0;--accent-weak:#334435;--accent-line:#69856b;--accent-ink:#1c291e;--ok:#b0d2b0;--ok-weak:#304832;--bad:#edb69c;--bad-weak:#4a3328;--bad-ink:#f2c4ac;--flag:#d5af77;--mark:#685b2e;--mark-ink:#fff3c4;--bar:#202d24;--bar-ink:#eeeadd;--bar-muted:#c6cebc;--bar-line:#6c816b;--tbl:#293027}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#191e1a;--surface:#232b25;--line:#414c40;--line2:#647260;--ink:#e8e5d8;--ink2:#d1d3c4;--muted:#b2b4a6;--accent:#b0cdb0;--accent-weak:#334435;--accent-line:#69856b;--accent-ink:#1c291e;--ok:#b0d2b0;--ok-weak:#304832;--bad:#edb69c;--bad-weak:#4a3328;--bad-ink:#f2c4ac;--flag:#d5af77;--mark:#685b2e;--mark-ink:#fff3c4;--bar:#202d24;--bar-ink:#eeeadd;--bar-muted:#c6cebc;--bar-line:#6c816b;--tbl:#293027}}
+html{scroll-padding-top:calc(70px + var(--safe-top));padding-top:var(--safe-top)}
+body{font-size:16px;line-height:1.65;min-height:100svh}
+body::before{height:var(--safe-top)}
+button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}
+button,a{touch-action:manipulation}
+button:disabled{cursor:default;opacity:.48}
+input,select,textarea{font-size:16px!important;max-width:100%}
+.topnav{top:var(--safe-top);background:var(--surface)}
+.topnav .in{min-height:76px;max-width:1280px;gap:16px 32px}
+.brand{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:.025em}
+.tabs a{border-radius:24px;padding:10px 19px}
+.tabs a[aria-current=page]{font-weight:600}
+.syncpill{font-size:12px;max-width:100%;overflow-wrap:anywhere;line-height:1.5}
+.page{max-width:1280px;padding:32px 24px 64px}
+.cols{gap:24px}.colside{gap:18px}.card{border-radius:16px;padding:28px;box-shadow:0 3px 16px rgba(32,46,31,.025)}
+.card h1{font-family:var(--serif);font-size:30px;font-weight:600;letter-spacing:.04em}
+.card h2{font-size:17px;letter-spacing:.02em}
+.label{font-size:14px}.chip{min-height:46px;border-radius:9px}.chip.pill{min-height:44px}.seg button{min-height:44px}
+.btn{border-radius:9px;min-height:46px}.btn.big{min-height:52px}.btn.primary{font-weight:600}
+.banner{border-radius:12px}.home-detail{border-top:1px solid var(--line);padding-top:6px}.card.home-detail{padding-top:18px;padding-bottom:18px}
+#startfree{padding-left:24px;padding-right:24px}
+.qbar{top:var(--safe-top)}.qbar .in{max-width:1440px;margin:auto;gap:8px 12px;min-height:64px}
+.qbtn{min-height:44px}.qbtn.icon{width:44px}.qbar .ttl{max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qwrap{max-width:1440px;margin:auto;min-height:calc(100svh - 64px - var(--safe-top));align-items:flex-start}
+.qnav{position:sticky;top:calc(80px + var(--safe-top));max-height:calc(100dvh - 100px - var(--safe-top));overflow-y:auto;max-width:230px;background:transparent;border-right:0;padding:24px 18px;scrollbar-width:thin}
+.qn{height:44px;min-width:0}.qgrid{gap:7px}.qmain{background:var(--surface);margin:24px 24px 36px 0;padding:40px 48px 28px;border:1px solid var(--line);border-radius:16px;flex-basis:560px}
+.qcol{max-width:72ch;margin:auto;gap:22px}.qmeta{padding-bottom:14px;border-bottom:1px solid var(--line);gap:10px}
+.stem{font-size:var(--reading-size);line-height:1.85;letter-spacing:.005em;gap:18px;text-wrap:pretty;overflow-wrap:break-word}
+.opt .om{font-family:var(--serif);font-size:var(--reading-size);line-height:1.7;padding:16px;min-width:0;min-height:60px}
+.opt .om .tx{min-width:0;overflow-wrap:anywhere}.opt{border-radius:11px}.opt .os{width:46px;min-height:48px}
+.opts{gap:12px}.etext,.obj div{font-size:calc(var(--reading-size) - 1px);line-height:1.85;overflow-wrap:anywhere}.etext{gap:16px}
+.tools .btn{min-height:44px}.tools{gap:10px}.wbp{padding:18px;border-radius:12px}.wbp textarea{line-height:1.8;scroll-margin:100px 0 140px}
+.reading-tools{display:flex;gap:4px;margin-left:auto;align-items:center}.reading-tools .btn{min-width:44px;padding:0 10px;font-family:var(--serif);font-size:17px}
+.quiz-sync{flex-basis:100%}.qfoot{gap:12px}.qfoot .btn{min-height:50px}
+.sheet{max-height:85dvh;overscroll-behavior:contain;padding-bottom:calc(24px + var(--safe-bottom));border-radius:18px 18px 0 0}.sheet .qgrid .qn{min-height:44px}
+.toast{max-width:min(520px,calc(100vw - 32px));bottom:calc(100px + var(--safe-bottom))!important}
+@media(max-width:760px){
+ .topnav .in{min-height:60px;padding:8px 20px;gap:4px 12px;justify-content:space-between}.brand{font-size:21px}.topnav .syncpill{max-width:52%;font-size:11px}
+ .page{padding:20px 16px calc(104px + var(--safe-bottom))!important}.cols{gap:18px}.card{padding:24px 20px;border-radius:14px}.card h1{font-size:28px}
+ .bottomnav{padding:6px max(4px,env(safe-area-inset-right)) calc(8px + var(--safe-bottom)) max(4px,env(safe-area-inset-left));box-shadow:0 -4px 24px rgba(30,44,28,.04)}
+ .bottomnav a{min-height:52px;gap:4px;font-size:12px}.bottomnav a[aria-current=page]{position:relative}.bottomnav a[aria-current=page]::before{content:'';position:absolute;top:-7px;left:28%;right:28%;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
+ #startfree{width:100%}.chip{padding:0 12px}.chip[aria-pressed=true]{padding:0 11px}
+ .qbar .in{padding:6px max(10px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left));gap:4px 7px;min-height:60px}.qbar .pos{font-size:14px}.qbar .timer{font-size:13px;gap:3px}.qbtn{padding:0 10px}.qbar .ttl{display:none}
+ .qmain{margin:0;border:0;border-radius:0;padding:24px 22px calc(118px + var(--safe-bottom));width:100%}.qcol{gap:21px}.qmeta{gap:8px}.stem{font-size:var(--reading-size);line-height:1.8}
+ .opt .om{padding:14px 12px;gap:9px;font-size:calc(var(--reading-size) - 1px);line-height:1.65}.opt .os{width:44px}.opts{gap:11px}
+ .qfoot{padding:12px max(20px,env(safe-area-inset-right)) calc(12px + var(--safe-bottom)) max(20px,env(safe-area-inset-left));box-shadow:0 -4px 24px rgba(30,44,28,.04)}
+ .qfoot .btn{min-height:50px}.qfoot .btn:first-child{min-width:84px;padding:0 14px}.qfoot .btn:last-child{min-width:0;padding:0 14px}
+ .modes{grid-template-columns:1fr}.scrim{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+}
+@media(max-height:500px) and (orientation:landscape){.qnav{display:none}.qbar .ttl{display:none}.qwrap{display:block}.qmain{margin:16px max(18px,env(safe-area-inset-right)) 24px max(18px,env(safe-area-inset-left));padding:24px}.phone-only{display:inline-flex!important}.qcol{max-width:75ch}.qbar .in{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}}
+.keyboard-open .qfoot,.keyboard-open .bottomnav{visibility:hidden;pointer-events:none}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 
 </style>
 </head>
@@ -504,7 +560,8 @@ const IDB = {
     if (this.mem) return Promise.resolve({ ...this.mem[store] });
     return new Promise((res, rej) => {
       const t = this.db.transaction(store); const s = t.objectStore(store); const out = {};
-      const c = s.openCursor(); c.onsuccess = () => { const cur = c.result; if (cur) { out[cur.key] = cur.value; cur.continue(); } else res(out); }; c.onerror = () => rej(c.error);
+      const c = s.openCursor(); c.onsuccess = () => { const cur = c.result; if (cur) { out[cur.key] = cur.value; cur.continue(); } }; c.onerror = () => rej(c.error);
+      t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error || new Error('本机读取中断，请重试'));
     });
   },
 };
@@ -512,7 +569,7 @@ const IDB = {
 // ================= state =================
 const ST = {
   recs: {}, sessions: {},
-  cfg: { u: 0, exit: 2, askConf: true, theme: 'auto', lastBackup: 0, ncbeOpen: false, pace: 1.8, count: 33, mode: 'exam', pool: 'unseen', groups: ['CON'], section: '', shuffle: true, blockN: 0, backupSnooze: 0 },
+  cfg: { u: 0, exit: 2, askConf: true, theme: 'auto', readingSize: 20, lastBackup: 0, ncbeOpen: false, pace: 1.8, count: 33, mode: 'exam', pool: 'unseen', groups: ['CON'], section: '', shuffle: true, blockN: 0, backupSnooze: 0 },
 };
 const CH = new Map(); // chunk -> Set(qid)
 const chunkOf = (qid) => { const i = qid.lastIndexOf('-'); return qid.slice(0, i) + '_' + Math.floor((parseInt(qid.slice(i + 1), 10) - 1) / 50); };
@@ -534,17 +591,27 @@ function docBody(key) {
   return null;
 }
 const Local = {
-  dirty: new Set(), t: null, warned: false,
+  dirty: new Set(), t: null, warned: false, running: null,
   mark(k) { this.dirty.add(k); clearTimeout(this.t); this.t = setTimeout(() => this.flush(), 400); },
-  async flush() {
-    const ks = [...this.dirty]; this.dirty.clear();
-    for (const k of ks) { const b = docBody(k); try { if (b) await IDB.put('kv', k, clone(b)); } catch (e) { this.dirty.add(k); if (!this.warned) { this.warned = true; toast('本机存储写入失败，请尽快导出进度备份并检查浏览器空间'); } } }
+  flush() {
+    clearTimeout(this.t);
+    if(this.running)return this.running;
+    this.running=this.drain().finally(()=>{this.running=null;});return this.running;
+  },
+  async drain() {
+    while(this.dirty.size) {
+      const ks=[...this.dirty];this.dirty.clear();let failed=false;
+      for(const k of ks) { const b=docBody(k);try { if(b)await IDB.put('kv',k,clone(b)); }
+        catch(e) { failed=true;this.dirty.add(k);if(!this.warned){this.warned=true;toast('本机存储写入失败，请尽快导出进度备份并检查浏览器空间');} }
+      }
+      if(failed)break;this.warned=false;
+    }
   },
 };
 function touchRec(qid) { indexRec(qid); const k = 'q_' + chunkOf(qid); Local.mark(k); Sync.mark(k); }
 function touchSession(s, remote = true) { if (s.virtual) return; s.u = now(); Local.mark('s_' + s.id); if (remote) Sync.mark('s_' + s.id); }
 let cfgT = null;
-function touchCfg() { ST.cfg.u = now(); Local.mark('cfg'); clearTimeout(cfgT); cfgT = setTimeout(() => Sync.mark('cfg'), 800); }
+function touchCfg() { ST.cfg.u = now(); Local.mark('cfg'); clearTimeout(cfgT); cfgT = setTimeout(() => {cfgT=null;Sync.mark('cfg');}, 800); }
 async function loadLocal() {
   const kv = await IDB.all('kv');
   for (const [k, v] of Object.entries(kv)) {
@@ -626,8 +693,8 @@ async function loadPdfjs() {
   PDFJS = m; return m;
 }
 async function loadBanks() {
-  for (const k of Object.keys(BANK)) delete BANK[k]; Q.clear();
   const all = await IDB.all('banks');
+  for (const k of Object.keys(BANK)) delete BANK[k]; Q.clear();
   for (const [code, b] of Object.entries(all)) { BANK[code] = b; for (const q of b.qs) { q.code = code; Q.set(q.id, q); } }
   migrateHashes();
   await window.MBESections.indexBanks();
@@ -739,8 +806,11 @@ function dueIds() { const t = today(); const out = []; for (const [qid, r] of Ob
 
 // ================= shell & router =================
 const TABS = [['home', '做题', I.plus], ['wrongbook', '错题本', I.book], ['stats', '统计', I.chart], ['library', '题库', I.folder], ['more', '更多', I.more]];
+function readingSize() { return [18,20,22,24].includes(+ST.cfg.readingSize) ? +ST.cfg.readingSize : 20; }
+function updateReadingButtons() { for(const b of document.querySelectorAll('[data-size]'))b.setAttribute('aria-pressed',String(+b.dataset.size===readingSize()));const down=document.querySelector('[data-q=smaller]'),up=document.querySelector('[data-q=larger]');if(down)down.disabled=readingSize()===18;if(up)up.disabled=readingSize()===24; }
+function setReadingSize(n) { ST.cfg.readingSize=Math.max(18,Math.min(24,n));touchCfg();applyTheme(); }
 let VIEW = 'home'; let ACTIVE = null; let PAUSED = false;
-function applyTheme() { const t = ST.cfg.theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+function applyTheme() { updateReadingButtons(); document.documentElement.style.setProperty('--reading-size', readingSize() + 'px'); const t = ST.cfg.theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
 function shell(inner) {
   const nav = TABS.map(([k, n]) => `<a href="#${k}" ${VIEW === k ? 'aria-current="page"' : ''}>${n}</a>`).join('');
   const bnav = TABS.map(([k, n, ic]) => `<a href="#${k}" ${VIEW === k ? 'aria-current="page"' : ''}>${ic}<span>${n}</span></a>`).join('');
@@ -763,7 +833,7 @@ function render() {
   renderSync(); bindView();
 }
 let softT = null;
-function softRender() { clearTimeout(softT); softT = setTimeout(() => { if (!ACTIVE && !IMPORTING && !document.activeElement?.matches('textarea,input')) render(); }, 300); }
+function softRender() { clearTimeout(softT); softT = setTimeout(() => { if (!ACTIVE && !IMPORTING && !document.activeElement?.matches('textarea,input,select')) render(); }, 300); }
 
 // ================= home =================
 const HOME_DETAILS = {};
@@ -912,7 +982,8 @@ function viewMore() {
     <div class="card stack"><h2>导出</h2><div class="row"><button class="btn" data-act="xlsx">${I.dl}全部作答记录（Excel）</button><button class="btn" data-act="xdocx-all">${I.dl}整本错题本（Word）</button></div><p class="small muted" style="margin:0">需要 PDF 时，用 Word 打开后另存为 PDF。</p></div>
   </section><aside class="colside">
     <div class="card stack"><h2>设置</h2>
-      <div class="field"><div class="label">外观</div><div class="seg">${[['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']].map(([k, n]) => `<button type="button" data-theme="${k}" aria-pressed="${c.theme === k}">${n}</button>`).join('')}</div></div>
+      <div class="field"><div class="label">外观</div><div class="seg">${[['auto', '跟随系统'], ['light', '纸白'], ['dark', '夜读']].map(([k, n]) => `<button type="button" data-theme="${k}" aria-pressed="${c.theme === k}">${n}</button>`).join('')}</div></div>
+      <div class="field"><div class="label">阅读字号</div><div class="seg">${[[18,'紧凑'],[20,'标准'],[22,'大字'],[24,'特大']].map(([n,label])=>`<button type="button" data-size="${n}" aria-pressed="${readingSize()===n}">${label}</button>`).join('')}</div></div>
       <div class="field"><div class="label">移出错题本的条件</div><div class="seg">${[2, 3].map((k) => `<button type="button" data-exit="${k}" aria-pressed="${c.exit === k}">按期连续做对 ${k} 次</button>`).join('')}</div></div>
     </div>
     <div class="card stack"><h2>在其他账号使用</h2><p class="small muted" style="margin:0">每个账号使用独立的本机空间和私有云数据。换设备登录同一账号，会自动载入进度和云端题库。不同账号之间需要自行导出、导入备份；未登录时的旧数据不会自动上传到账号。</p></div>
@@ -940,6 +1011,7 @@ function bindView() {
     else if (d.wbopen !== undefined) openWbItem(+d.wbopen);
     else if (d.delbank) { if (await confirmBox(`删除这台设备上的“${CODES[d.delbank]}”题库？做题记录会保留。`, '删除')) { await IDB.del('banks', d.delbank); await IDB.del('pdfs', d.delbank); await loadBanks(); render(); } }
     else if (b.id === 'doimport') doImport();
+    else if (d.size) { setReadingSize(+d.size); }
     else if (d.theme) { ST.cfg.theme = d.theme; touchCfg(); applyTheme(); render(); }
     else if (d.exit) { ST.cfg.exit = +d.exit; touchCfg(); render(); }
     else if (d.act === 'backup') exportBackup();
@@ -1127,7 +1199,7 @@ function renderActive() {
       ${right}</div></header>
     <div class="qwrap"><nav class="qnav" aria-label="题号"><div class="qgrid">${nav}</div><div class="legend">${review || s.mode !== 'exam' ? '<span><i style="background:var(--ok-weak)"></i>对</span><span><i style="background:var(--bad-weak)"></i>错</span>' : '<span><i style="background:var(--accent-weak)"></i>已作答</span>'}<span><i style="background:var(--flag);border-radius:50%;width:8px;height:8px;margin:0 8px 0 2px"></i>已标记</span></div></nav>
     <main class="qmain"><div class="qcol">
-      <div class="qmeta">${meta}</div>
+      <div class="qmeta">${meta}<div class="reading-tools" role="group" aria-label="阅读字号"><button class="btn" data-q="smaller" aria-label="缩小字号" ${readingSize()===18?'disabled':''}>A−</button><button class="btn" data-q="larger" aria-label="放大字号" ${readingSize()===24?'disabled':''}>A+</button></div><div class="syncpill quiz-sync" role="status" aria-live="polite"></div></div>
       <div class="stem" id="stem">${q.stem.map((p) => `<p>${hlText(p, s.hl[qid])}</p>`).join('')}</div>
       ${submitted ? '' : '<div class="tools"><button class="btn" data-q="hl">高亮所选文字</button>' + (s.hl[qid] && s.hl[qid].length ? '<button class="btn" data-q="hlclear">清除高亮</button>' : '') + '<span class="wide">点右侧横线可划掉选项 · 键盘 A–D 选择，← → 翻题</span></div>'}
       <fieldset class="opts"><legend class="sr">选项</legend>${opts}</fieldset>
@@ -1136,12 +1208,11 @@ function renderActive() {
       <div class="qfoot"><button class="btn" data-q="prev" ${A.pos ? '' : 'disabled'}>上一题</button>${mainBtn}</div>
     </div></main></div>
     ${PAUSED ? `<div class="pause"><h2 style="margin:0">已暂停</h2><p class="muted" style="margin:0">计时已停止，题目已隐藏。</p><button class="btn primary big" data-q="resume">继续答题</button></div>` : ''}`;
-  bindQuiz();
+  bindQuiz();renderSync();
 }
 function latestChoice(qid) { const a = ST.recs[qid]?.a; return a && a.length ? a[a.length - 1][2] : ''; }
 let LASTSEL = '';
 document.addEventListener('selectionchange', () => { const sel = window.getSelection(); const stem = $('#stem'); if (sel && stem && sel.rangeCount && stem.contains(sel.anchorNode)) { const t = sel.toString().trim(); if (t) LASTSEL = t; } });
-let noteT = null;
 function bindQuiz() {
   const root = $('#app');
   root.onclick = async (e) => {
@@ -1150,12 +1221,14 @@ function bindQuiz() {
     if (d.strike) { const cur = s.st[q.id] || ''; s.st[q.id] = cur.includes(d.strike) ? cur.replace(d.strike, '') : cur + d.strike; if (s.ans[q.id] === d.strike && s.st[q.id].includes(d.strike)) delete s.ans[q.id]; touchSession(s); renderActive(); return; }
     if (d.goto !== undefined) { moveTo(+d.goto); closeSheet(); return; }
     switch (d.q) {
+      case 'smaller': setReadingSize(readingSize()-2); break;
+      case 'larger': setReadingSize(readingSize()+2); break;
       case 'next': moveTo(A.pos + 1); break;
       case 'freeNext': continueFree(); break;
       case 'prev': moveTo(A.pos - 1); break;
       case 'flag': if (s.fl[q.id]) delete s.fl[q.id]; else s.fl[q.id] = 1; setRecField(q.id, 'f', s.fl[q.id] ? 1 : 0); touchSession(s); renderActive(); break;
       case 'conf': s.cf[q.id] = +d.v; touchSession(s); renderActive(); break;
-      case 'submit': if (!s.ans[q.id]) return; addAttempt(q.id, s.ans[q.id], s.cf[q.id] || 0, s.sec[q.id] || 0, s.kind === 'wb' ? 2 : 0); s.sub[q.id] = 1; touchSession(s); renderActive(); break;
+      case 'submit': if (s.sub[q.id] || !s.ans[q.id]) return; addAttempt(q.id, s.ans[q.id], s.cf[q.id] || 0, s.sec[q.id] || 0, s.kind === 'wb' ? 2 : 0); s.sub[q.id] = 1; touchSession(s); renderActive(); break;
       case 'finish': if (!Object.keys(s.sub).length) { if (await confirmBox('还没有提交任何一题。退出这组题？', '退出')) exitActive(); return; } s.done = true; touchSession(s); A.view = 'result'; render(); break;
       case 'submitExam': { const un = s.qids.filter((x) => !s.ans[x]).length; const fl = Object.keys(s.fl).length; if (await confirmBox(`${un ? `还有 ${un} 题未作答。` : '已全部作答。'}${fl ? `有 ${fl} 题标记过。` : ''}确定交卷？`, '交卷')) submitExam(); break; }
       case 'pause': PAUSED = true; touchSession(s); renderActive(); break;
@@ -1172,7 +1245,7 @@ function bindQuiz() {
     }
   };
   root.onchange = (e) => { if (e.target.id === 'question-section') { setRecField(curQ().id, 'g', e.target.value); renderActive(); } };
-  root.oninput = (e) => { if (e.target.id === 'note') { const v = e.target.value; const qid = curQ().id; clearTimeout(noteT); noteT = setTimeout(() => setRecField(qid, 'n', v), 700); } };
+  root.oninput = (e) => { if (e.target.id === 'note') { const v = e.target.value; const qid = curQ().id; setRecField(qid, 'n', v); } };
   root.oncontextmenu = (e) => { const b = e.target.closest('[data-opt]'); if (!b || !ACTIVE || ACTIVE.view === 'review') return; e.preventDefault(); const s = ACTIVE.s; const q = curQ(); const L = b.dataset.opt; const cur = s.st[q.id] || ''; s.st[q.id] = cur.includes(L) ? cur.replace(L, '') : cur + L; touchSession(s); renderActive(); };
 }
 function moveTo(i) { const A = ACTIVE; if (i >= A.list.length && A.s.kind === 'free' && A.s.sub[A.list[A.pos]] && A.view === 'quiz') { continueFree(); return; } if (i < 0 || i >= A.list.length) return; A.pos = i; LASTSEL = ''; if (A.view === 'quiz') A.s.cur = i; touchSession(A.s, false); renderActive(); window.scrollTo(0, 0); }
@@ -1240,8 +1313,13 @@ setInterval(() => {
   tickN++; if (tickN % 5 === 0) { s.u = now(); Local.mark('s_' + s.id); } if (tickN % 30 === 0) Sync.mark('s_' + s.id);
   if (s.mode === 'exam' && s.lim && s.el >= s.lim) submitExam(true);
 }, 1000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) { saveActive(); Local.flush(); } });
-window.addEventListener('pagehide', () => { saveActive(); });
+function checkpoint() { if(cfgT){clearTimeout(cfgT);cfgT=null;Sync.mark('cfg');}saveActive();Local.flush();Sync.kick(); }
+document.addEventListener('visibilitychange', () => { if(document.hidden)checkpoint();else { Local.flush();Sync.kick(); } });
+window.addEventListener('pagehide',checkpoint);
+window.addEventListener('pageshow',()=>{Local.flush();Sync.kick();});
+function updateKeyboard() { const v=window.visualViewport;document.body.classList.toggle('keyboard-open',!!(v && Math.abs(v.scale-1)<.05 && /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName) && innerHeight-v.height>140)); }
+window.visualViewport?.addEventListener('resize',updateKeyboard);
+document.addEventListener('focusin',updateKeyboard);document.addEventListener('focusout',()=>setTimeout(updateKeyboard,0));
 document.addEventListener('keydown', (e) => {
   if (!ACTIVE || ACTIVE.view === 'result' || PAUSED || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.closest('input,textarea,select')) return; if ($('.scrim')) return;
   const k = e.key; const map = { a: 'A', b: 'B', c: 'C', d: 'D', 1: 'A', 2: 'B', 3: 'C', 4: 'D' };
@@ -1277,8 +1355,8 @@ async function importBackup(file) {
 }
 let JSZIPP = null, DOCXP = null;
 function loadScript(src, globalName) { return new Promise((res, rej) => { if (window[globalName]) return res(window[globalName]); const s = document.createElement('script'); const t = setTimeout(() => { s.remove(); rej(new Error('脚本加载超时')); }, 20000); s.src = src; s.onload = () => { clearTimeout(t); res(window[globalName]); }; s.onerror = () => { clearTimeout(t); rej(new Error('脚本加载失败')); }; document.head.appendChild(s); }); }
-const loadJSZip = () => (JSZIPP = JSZIPP || loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip'));
-const loadDocx = () => (DOCXP = DOCXP || loadScript('https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.iife.js', 'docx'));
+const loadJSZip = () => (JSZIPP = JSZIPP || loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip').catch(e=>{JSZIPP=null;throw e;}));
+const loadDocx = () => (DOCXP = DOCXP || loadScript('https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.iife.js', 'docx').catch(e=>{DOCXP=null;throw e;}));
 const xmlEsc = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 async function buildXlsx(rows, widths) {
   const JSZip = await loadJSZip(); const z = new JSZip();
@@ -1338,9 +1416,9 @@ async function init() {
   await Promise.all([window.MBECloud.prepare(), window.MBESections.prepare()]);
   const durable = await IDB.open();
   if (!durable) setTimeout(() => toast('此浏览器无法持久保存，本机数据离开后可能丢失；请使用正常浏览模式并导出备份'), 500);
-  try { await loadLocal(); } catch (e) { /* first run */ }
-  applyTheme();
-  try { await loadBanks(); } catch (e) { /* none */ }
+  try { await loadLocal();applyTheme();await loadBanks(); } catch (e) {
+    applyTheme();$('#app').innerHTML='<div class="page"><section class="card stack"><h1>记录暂时无法读取</h1><p>请重新载入，恢复本机记录后再继续做题。</p><div><button class="btn primary" onclick="location.reload()">重新载入</button></div></section></div>';return;
+  }
   window.addEventListener('hashchange', route);
   route();
   Sync.init();
