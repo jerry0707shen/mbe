@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MBE 刷题器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  --bg:#F4F5F7; --surface:#FFFFFF; --line:#DDE1E6; --line2:#C9CFD6;
+  --ink:#1B2430; --ink2:#4A5462; --muted:#5B6472;
+  --accent:#1F4E8C; --accent-weak:#E8EEF6; --accent-ink:#FFFFFF; --accent-line:#C3D2E6;
+  --ok:#17695A; --ok-weak:#E3F1EC; --bad:#B14A12; --bad-weak:#FBEDE4; --bad-ink:#8F3A0D;
+  --flag:#C25B12; --mark:#FFEB99; --mark-ink:#1B2430;
+  --bar:#1B2430; --bar-ink:#FFFFFF; --bar-muted:#C9D1DB; --bar-line:#5B6676;
+  --tbl:#F7F8FA;
+  --sans:'Noto Sans SC',system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#11161D; --surface:#19202A; --line:#2A3340; --line2:#3A4554;
+    --ink:#E6EAF0; --ink2:#C3CAD4; --muted:#9AA4B1;
+    --accent:#8DB2E8; --accent-weak:#1F2D42; --accent-ink:#0E1520; --accent-line:#34507A;
+    --ok:#6CCBAE; --ok-weak:#163229; --bad:#F2996A; --bad-weak:#3A2419; --bad-ink:#F6B590;
+    --flag:#F0A060; --mark:#6E5C14; --mark-ink:#FFF6D6;
+    --bar:#0B1016; --bar-ink:#E6EAF0; --bar-muted:#9AA4B1; --bar-line:#3A4554;
+    --tbl:#151B23;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11161D; --surface:#19202A; --line:#2A3340; --line2:#3A4554;
+  --ink:#E6EAF0; --ink2:#C3CAD4; --muted:#9AA4B1;
+  --accent:#8DB2E8; --accent-weak:#1F2D42; --accent-ink:#0E1520; --accent-line:#34507A;
+  --ok:#6CCBAE; --ok-weak:#163229; --bad:#F2996A; --bad-weak:#3A2419; --bad-ink:#F6B590;
+  --flag:#F0A060; --mark:#6E5C14; --mark-ink:#FFF6D6;
+  --bar:#0B1016; --bar-ink:#E6EAF0; --bar-muted:#9AA4B1; --bar-line:#3A4554;
+  --tbl:#151B23;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--surface)}
+body.in-quiz::before{background:var(--bar)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.serif{font-family:var(--serif)}
+.hide{display:none!important}
+
+/* ---------- top nav (desktop) ---------- */
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);border-bottom:1px solid var(--line)}
+.topnav .in{max-width:1240px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px;min-height:60px}
+.brand{font-weight:700;font-size:18px;letter-spacing:.02em}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;flex-grow:1}
+.tabs a{padding:9px 14px;border-radius:6px;color:var(--ink2);text-decoration:none}
+.tabs a[aria-current="page"]{background:var(--accent-weak);color:var(--accent);font-weight:500}
+.syncpill{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line2);display:inline-block}
+.dot.on{background:var(--ok)}.dot.warn{background:var(--flag)}
+
+/* ---------- bottom tabs (phone) ---------- */
+.bottomnav{display:none}
+@media (max-width:760px){
+  .topnav .tabs{display:none}
+  .topnav .in{padding:0 16px;min-height:52px}
+  .bottomnav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:4px 0 calc(6px + env(safe-area-inset-bottom,0px))}
+  .bottomnav a{min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;color:var(--muted);text-decoration:none}
+  .bottomnav a[aria-current="page"]{color:var(--accent);font-weight:700}
+  .page{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}
+}
+
+/* ---------- generic layout ---------- */
+.page{max-width:1240px;margin:0 auto;padding:24px 24px 48px}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.colmain{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.colside{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px}
+.card h1{margin:0 0 4px;font-size:21px}
+.card h2{margin:0;font-size:16px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.between{justify-content:space-between}
+.field{display:flex;flex-direction:column;gap:8px}
+.label{font-size:13px;font-weight:500;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:0 14px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);color:var(--ink)}
+.chip[aria-pressed="true"]{border:2px solid var(--accent);background:var(--accent-weak);padding:0 13px;font-weight:500}
+.chip .n{font-size:12px;color:var(--muted);font-weight:400}
+.chip.pill{border-radius:21px;min-height:38px;font-size:14px}
+.seg{display:inline-flex;flex-wrap:wrap;align-self:flex-start;max-width:100%;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.seg button{min-height:42px;padding:0 16px;border:0;border-left:1px solid var(--line2);background:var(--surface)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.mode{text-align:left;padding:14px 16px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);display:flex;flex-direction:column;gap:2px}
+.mode[aria-pressed="true"]{border:2px solid var(--accent);background:var(--accent-weak);padding:13px 15px}
+.mode b{font-size:15px}
+.mode span{font-size:13px;color:var(--ink2)}
+.num{width:110px;min-height:42px;padding:0 12px;border:1px solid var(--line2);border-radius:8px;background:var(--surface);font-size:16px}
+.check{display:flex;align-items:center;gap:10px;min-height:40px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.ghost{border-color:var(--accent);color:var(--accent);font-weight:500}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.big{min-height:48px;padding:0 26px;font-size:16px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.big-n{font-size:30px;font-weight:700;line-height:1.1}
+.tag{font-size:12px;padding:1px 8px;border-radius:4px;border:1px solid var(--line2);color:var(--muted)}
+.tag.acc{background:var(--accent-weak);border-color:transparent;color:var(--accent);font-weight:500}
+.tag.bad{background:var(--bad-weak);border-color:transparent;color:var(--bad-ink)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar>i{display:block;height:6px;background:var(--accent)}
+.prog{display:flex;flex-direction:column;gap:6px}
+.banner{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:14px 18px;border-radius:10px;background:var(--accent-weak);border:1px solid var(--accent-line)}
+.banner.warn{background:var(--bad-weak);border-color:transparent}
+.empty{text-align:center;padding:40px 20px;display:flex;flex-direction:column;gap:12px;align-items:center}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th,table.t td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t th{font-size:13px;color:var(--muted);font-weight:500}
+.scrollx{overflow-x:auto}
+
+/* ---------- quiz ---------- */
+.qbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bar);color:var(--bar-ink)}
+.qbar .in{padding:8px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;min-height:58px}
+.qbar .ttl{font-size:14px;color:var(--bar-muted)}
+.qbar .pos{font-weight:700;font-size:17px;flex-grow:1}
+.qbar .timer{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.qbar .timer.low{color:#FFB37A}
+.qbtn{display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:0 13px;border:1px solid var(--bar-line);border-radius:8px;background:transparent;color:var(--bar-ink);font-size:14px}
+.qbtn[aria-pressed="true"]{background:var(--flag);border-color:var(--flag);color:#fff}
+.qbtn.solid{background:var(--bar-ink);color:var(--bar);border-color:var(--bar-ink);font-weight:700}
+.qbtn.icon{padding:0;width:42px;justify-content:center}
+.qwrap{display:flex;flex-wrap:wrap;align-items:stretch;min-height:calc(100% - 58px)}
+.qnav{flex:1 1 220px;max-width:260px;background:var(--surface);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:14px}
+.qgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.qn{position:relative;height:36px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:13px}
+.qn.done{background:var(--accent-weak);border-color:var(--accent-line);color:var(--ink)}
+.qn.cur{border:2px solid var(--accent);color:var(--accent);font-weight:700}
+.qn.ok{background:var(--ok-weak);border-color:transparent;color:var(--ok);font-weight:500}
+.qn.bad{background:var(--bad-weak);border-color:transparent;color:var(--bad-ink);font-weight:500}
+.qn .fl{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--flag)}
+.legend{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
+.qmain{flex:999 1 560px;min-width:0;padding:28px 40px 40px;display:flex;flex-direction:column;gap:20px}
+.qcol{max-width:780px;width:100%;display:flex;flex-direction:column;gap:18px}
+.qmeta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.stem{font-family:var(--serif);font-size:18px;line-height:1.7;display:flex;flex-direction:column;gap:12px}
+.stem p{margin:0}
+mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.tools .btn{min-height:36px;padding:0 12px;font-size:13px}
+.opts{display:flex;flex-direction:column;gap:9px;border:0;margin:0;padding:0}
+.opt{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:9px;background:var(--surface);overflow:hidden}
+.opt .om{flex-grow:1;display:flex;gap:12px;align-items:flex-start;text-align:left;padding:13px 14px;border:0;background:transparent;color:var(--ink);line-height:1.55}
+.opt .om .lb{font-weight:700;min-width:20px}
+.opt .os{width:44px;flex-shrink:0;border:0;border-left:1px solid var(--line);background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.opt.sel{border:2px solid var(--accent);background:var(--accent-weak)}
+.opt.strike .om .tx{text-decoration:line-through;color:var(--muted)}
+.opt.strike .om .lb{color:var(--muted)}
+.opt.ok{border:2px solid var(--ok);background:var(--ok-weak)}
+.opt.bad{border:2px solid var(--bad);background:var(--bad-weak)}
+.opt .mk{flex-shrink:0;margin-top:3px}
+.conf{display:flex;flex-direction:column;gap:8px}
+.conf .seg button{min-width:76px}
+.verdict{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:12px 16px;border-radius:8px}
+.verdict.ok{background:var(--ok-weak);color:var(--ok)}
+.verdict.bad{background:var(--bad-weak);color:var(--bad-ink)}
+.verdict b{font-size:16px}
+.expl{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:18px}
+.expl h3{margin:0;font-size:17px}
+.etext{font-family:var(--serif);font-size:16px;line-height:1.7;display:flex;flex-direction:column;gap:11px}
+.etext p{margin:0}
+.tblk{background:var(--tbl);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--sans);font-size:13px;line-height:1.5;color:var(--ink2);white-space:pre-wrap;overflow-x:auto}
+.obj{padding:13px 15px;border-radius:8px;background:var(--accent-weak)}
+.obj .k{font-size:13px;font-weight:700;color:var(--accent);font-family:var(--sans)}
+.obj div{font-family:var(--serif);font-size:16px}
+.pages{display:flex;flex-direction:column;gap:10px}
+.pages canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+details.refs summary{cursor:pointer;color:var(--muted);font-size:13px}
+details.refs ul{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--ink2)}
+.wbp{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.wbp textarea{width:100%;min-height:84px;padding:10px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--surface);resize:vertical;font-size:14px;line-height:1.6}
+.qfoot{display:flex;gap:10px;justify-content:space-between;padding-top:14px;border-top:1px solid var(--line)}
+.pause{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+@media (max-width:760px){
+  .qbar .in{padding:6px 8px 6px 4px;gap:4px 8px;min-height:52px}
+  .qbar .ttl{display:none}
+  .qbar .pos{font-size:15px}
+  .qbar .wide{display:none}
+  .qnav{display:none}
+  .qmain{padding:16px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+  .stem{font-size:16.5px;line-height:1.62}
+  .etext{font-size:15.5px}
+  .qfoot{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+  .qfoot .btn{flex-grow:1}
+  .qfoot .btn:first-child{flex-grow:0}
+}
+@media (min-width:761px){ .phone-only{display:none!important} }
+@media (max-width:760px){ .wide{display:none!important} }
+
+/* sheet / modal / toast */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(10,14,20,.45);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:761px){.scrim{align-items:center}}
+.sheet{width:100%;max-width:520px;max-height:85%;overflow:auto;background:var(--surface);border-radius:14px 14px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+@media (min-width:761px){.sheet{border-radius:12px}}
+.sheet h2{margin:0;font-size:18px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:70;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:14px;max-width:90%}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.item{display:flex;flex-direction:column;gap:7px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;text-align:left;width:100%;color:var(--ink)}
+.item .st{font-family:var(--serif);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stackbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi b{font-size:24px}
+.days{display:flex;align-items:flex-end;gap:4px;height:90px}
+.days i{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px}
+.importlist{display:flex;flex-direction:column;gap:8px}
+.imp{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+.imp .nm{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.imp select{min-height:38px;border:1px solid var(--line2);border-radius:6px;background:var(--surface);padding:0 8px}
+@media (prefers-reduced-motion:no-preference){ .toast{transition:opacity .2s} }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+// ===== MBE QBank PDF parser (shared by browser app and node tests) =====
+// Builds lines from pdf.js text items, segments questions by option pages,
+// infers the correct answer by elimination of "(Choice X)" references.
+function itemsToLines(items) {
+  const its = [];
+  for (const it of items) {
+    if (!it || typeof it.str !== 'string' || it.str === '') continue;
+    const t = it.transform;
+    const size = Math.hypot(t[2], t[3]) || Math.abs(t[3]) || 10;
+    its.push({ s: it.str, x: t[4], y: t[5], w: it.width || 0, size });
+  }
+  its.sort((a, b) => (b.y - a.y) || (a.x - b.x));
+  const lines = [];
+  for (const it of its) {
+    let ln = null;
+    for (let i = lines.length - 1; i >= 0 && i >= lines.length - 3; i--) {
+      const L = lines[i];
+      if (Math.abs(L.y - it.y) <= Math.max(2, 0.35 * Math.min(L.size, it.size))) { ln = L; break; }
+    }
+    if (!ln) { ln = { y: it.y, size: it.size, parts: [] }; lines.push(ln); }
+    ln.parts.push(it);
+    ln.size = Math.max(ln.size, it.size);
+  }
+  const out = [];
+  for (const L of lines) {
+    L.parts.sort((a, b) => a.x - b.x);
+    let text = '', endX = null, tbl = false;
+    for (const p of L.parts) {
+      if (endX !== null) {
+        const gap = p.x - endX;
+        if (gap > 2.5 * p.size) { tbl = true; if (!text.endsWith(' ')) text += '   '; }
+        if (gap > 0.18 * p.size && !text.endsWith(' ') && !p.s.startsWith(' ')) text += ' ';
+      }
+      text += p.s;
+      endX = p.x + p.w;
+    }
+    text = text.replace(/ {4,}/g, '   ').replace(/[ \t]+$/,'').trim();
+    if (text) out.push({ text, x: L.parts[0].x, y: L.y, size: L.size, tbl });
+  }
+  return out;
+}
+
+const OPT_RE = /^([A-E])\.\s*(.*)$/;
+function hasOptionBlock(lines) {
+  const seen = { A: false, B: false, C: false, D: false };
+  for (const l of lines) { const m = OPT_RE.exec(l.text); if (m && m[1] in seen) seen[m[1]] = true; }
+  return seen.A && seen.B && seen.C && seen.D;
+}
+function classifyPage(lines) {
+  if (!lines.length) return 'blank';
+  const all = lines.map(l => l.text).join('\n');
+  if (/Explanation:/.test(all) || /Educational objective/.test(all)) return 'exp';
+  if (hasOptionBlock(lines)) return 'q';
+  return 'exp';
+}
+
+// Group lines into paragraphs using vertical gaps; lines carry y within a page.
+function linesToParas(pagesLines) {
+  const paras = [];
+  let cur = null, prev = null;
+  const startsNew = (t) => /^(•|\(Choices? [A-E]|Explanation:|Educational objective|References$)/.test(t);
+  for (const lines of pagesLines) {
+    prev = null; // page break: allow continuation only if no big gap logic available
+    for (const l of lines) {
+      let brk = !cur || startsNew(l.text);
+      if (!brk && prev) {
+        const gap = prev.y - l.y;
+        if (gap > 1.6 * Math.max(prev.size, l.size)) brk = true;
+        if (Math.abs(l.x - prev.x) > 30) brk = true;
+        if (l.tbl || prev.tbl) brk = true;
+      }
+      if (brk) { cur = { t: (l.tbl ? '\u0001' : '') + l.text }; paras.push(cur); }
+      else cur.t += (cur.t.endsWith('-') ? '' : ' ') + l.text;
+      prev = l;
+    }
+  }
+  return paras.map(p => p.t.replace(/[ \t]{4,}/g, '   ').trim()).filter(Boolean);
+}
+
+function parseQuestionPage(lines) {
+  // find last A. with B., C., D. after it in order
+  const idx = { A: [], B: [], C: [], D: [], E: [] };
+  lines.forEach((l, i) => { const m = OPT_RE.exec(l.text); if (m) idx[m[1]].push(i); });
+  let a = -1, b = -1, c = -1, d = -1;
+  for (let k = idx.A.length - 1; k >= 0; k--) {
+    const ia = idx.A[k];
+    const ib = idx.B.find(i => i > ia); if (ib === undefined) continue;
+    const ic = idx.C.find(i => i > ib); if (ic === undefined) continue;
+    const id = idx.D.find(i => i > ic); if (id === undefined) continue;
+    a = ia; b = ib; c = ic; d = id; break;
+  }
+  if (a < 0) return null;
+  const stemLines = lines.slice(0, a);
+  const stem = linesToParas([stemLines]);
+  const take = (from, to) => lines.slice(from, to).map((l, j) => j === 0 ? l.text.replace(OPT_RE, '$2') : l.text).join(' ').replace(/\s+/g, ' ').trim();
+  const ie = idx.E.find(i => i > d);
+  const options = { A: take(a, b), B: take(b, c), C: take(c, d), D: take(d, ie !== undefined ? ie : lines.length) };
+  if (ie !== undefined) options.E = take(ie, lines.length);
+  return { stem, options };
+}
+
+function parseExplanation(pagesLines) {
+  const paras = linesToParas(pagesLines);
+  let body = [], obj = [], refs = [], mode = 'pre';
+  for (let p of paras) {
+    if (/^Copyright ©/.test(p)) continue;
+    if (mode === 'pre') {
+      const i = p.indexOf('Explanation:');
+      if (i >= 0) { mode = 'body'; p = p.slice(i + 12).trim(); if (!p) continue; }
+      else if (/^Educational objective:?/i.test(p)) { mode = 'body'; }
+      else { body.push(p); continue; } // diagram text before heading
+    }
+    if (/^Educational objective:?/i.test(p)) { mode = 'obj'; p = p.replace(/^Educational objective:?\s*/i, ''); if (!p) continue; }
+    if (/^References\b/.test(p) && mode !== 'body') { mode = 'refs'; p = p.replace(/^References\s*/, ''); if (!p) continue; }
+    if (mode === 'body') body.push(p);
+    else if (mode === 'obj') obj.push(p);
+    else if (mode === 'refs') refs.push(p.replace(/^•\s*/, ''));
+  }
+  return { body, obj: obj.join(' '), refs: refs.filter(r => r && r !== '•' && !/^Copyright/.test(r)) };
+}
+
+function inferAnswer(body, letters) {
+  const text = body.join('\n');
+  const wrong = new Set();
+  const re = /\(Choices? ([^)]{1,40})\)/g; let m;
+  while ((m = re.exec(text))) {
+    for (const L of (m[1].match(/\b[A-E]\b/g) || [])) wrong.add(L);
+  }
+  const rem = letters.filter(L => !wrong.has(L));
+  return rem.length === 1 ? rem[0] : null;
+}
+
+function fnv(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return ('0000000' + h.toString(16)).slice(-8);
+}
+function questionHash(stem, options) {
+  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return fnv(norm(stem.join(' ')).slice(0, 400) + '|' + norm(options.A || '').slice(0, 60) + '|' + norm(options.D || '').slice(0, 60));
+}
+
+// pages: array of {lines} in order (index = page number - 1)
+function segmentBank(pagesLines) {
+  const kinds = pagesLines.map(classifyPage);
+  const qs = [];
+  for (let i = 0; i < kinds.length; i++) {
+    if (kinds[i] !== 'q') continue;
+    let j = i + 1; const expPages = [];
+    while (j < kinds.length && kinds[j] !== 'q') { if (kinds[j] !== 'blank') expPages.push(j); j++; }
+    qs.push({ qPage: i, expPages });
+  }
+  const out = [];
+  for (const s of qs) {
+    if (!s.expPages.length) continue; // no explanation (truncated file)
+    const q = parseQuestionPage(pagesLines[s.qPage]);
+    if (!q) continue;
+    const ex = parseExplanation(s.expPages.map(p => pagesLines[p]));
+    const letters = Object.keys(q.options);
+    const auto = inferAnswer(ex.body, letters);
+    out.push({ stem: q.stem, options: q.options, expl: ex.body, obj: ex.obj, refs: ex.refs,
+      answer: auto, src: auto ? 'auto' : 'none', qPage: s.qPage + 1, ePages: s.expPages.map(p => p + 1),
+      hash: questionHash(q.stem, q.options) });
+  }
+  return out;
+}
+
+// ================= utilities =================
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const now = () => Date.now();
+const rid = () => Math.random().toString(36).slice(2, 7) + now().toString(36).slice(-4);
+const dayNum = (ts) => { const d = new Date(ts); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); };
+const today = () => dayNum(now());
+const fmtDay = (dn) => { const d = new Date(dn * 864e5); return `${d.getUTCMonth() + 1} 月 ${d.getUTCDate()} 日`; };
+const fmtDate = (ts) => { const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()}`; };
+const fmtFull = (ts) => { const d = new Date(ts); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const fmtSec = (s) => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+const pct = (a, b) => (b ? Math.round((a / b) * 100) + '%' : '—');
+const tick = () => new Promise((r) => setTimeout(r, 0));
+const clone = (o) => JSON.parse(JSON.stringify(o));
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+let toastT = null;
+function toast(msg) {
+  let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = msg; t.style.opacity = '1'; clearTimeout(toastT); toastT = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 250); }, 2600);
+}
+const I = {
+  flag: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/></svg>',
+  clock: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg>',
+  back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+  check: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>',
+  x: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  strike: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 12h16"/><path d="M8 7h8M8 17h8" opacity=".45"/></svg>',
+  dl: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>',
+  grid: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>',
+  pause: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>',
+  plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  book: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6"/></svg>',
+  chart: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>',
+  folder: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z"/></svg>',
+  more: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+};
+
+// ================= constants =================
+const CODES = { CON: '合同', TOR: '侵权', CRL: '刑法', CRP: '刑诉', EVI: '证据', CIV: '民诉', CL: '宪法', RP: '不动产', NCBE: 'NCBE 官方题' };
+const GROUPS = [
+  { k: 'CON', n: '合同', c: ['CON'] }, { k: 'TOR', n: '侵权', c: ['TOR'] }, { k: 'CRIM', n: '刑法与刑诉', c: ['CRL', 'CRP'] },
+  { k: 'EVI', n: '证据', c: ['EVI'] }, { k: 'CIV', n: '民诉', c: ['CIV'] }, { k: 'CL', n: '宪法', c: ['CL'] }, { k: 'RP', n: '不动产', c: ['RP'] },
+];
+const groupOf = (code) => (GROUPS.find((g) => g.c.includes(code)) || { k: 'NCBE', n: 'NCBE 官方题' });
+const REASONS = [[1, '规则不知道'], [2, '漏了关键事实'], [3, '看错题问'], [4, '两项纠结'], [5, '时间压力']];
+const reasonName = (c) => (REASONS.find((r) => r[0] === c) || [0, ''])[1];
+const CONF = ['确定', '犹豫', '猜的'];
+const MODE_NAME = ['练习', '考试', '错题复习'];
+const INTERVALS = [1, 3, 7, 14];
+function detectCode(name) {
+  const n = name || '';
+  if (/ncbe|综合/i.test(n)) return 'NCBE';
+  if (/民事诉讼|民诉|civil/i.test(n)) return 'CIV';
+  if (/criminal[\s_-]*procedure|crim[\s_-]*pro\b/i.test(n)) return 'CRP';
+  if (/criminal|刑法/i.test(n)) return 'CRL';
+  if (/证据|evidence/i.test(n)) return 'EVI';
+  if (/宪法|constitution/i.test(n)) return 'CL';
+  if (/不动产|property/i.test(n)) return 'RP';
+  if (/侵权|tort/i.test(n)) return 'TOR';
+  if (/合同|contract/i.test(n)) return 'CON';
+  return '';
+}
+
+// ================= IndexedDB =================
+const IDB = {
+  db: null, mem: null,
+  open() {
+    return new Promise((res) => {
+      let r;
+      try { r = indexedDB.open('mbe-qbank', 1); } catch (e) { this.mem = { banks: {}, pdfs: {}, kv: {} }; return res(false); }
+      r.onupgradeneeded = () => { const d = r.result; for (const n of ['banks', 'pdfs', 'kv']) if (!d.objectStoreNames.contains(n)) d.createObjectStore(n); };
+      r.onsuccess = () => { this.db = r.result; res(true); };
+      r.onerror = () => { this.mem = { banks: {}, pdfs: {}, kv: {} }; res(false); };
+    });
+  },
+  req(store, mode, fn) {
+    if (this.mem) return Promise.resolve(fn(null));
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store, mode); const s = t.objectStore(store); let out;
+      const r = fn(s); if (r) r.onsuccess = () => { out = r.result; };
+      t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  },
+  get(store, key) { if (this.mem) return Promise.resolve(this.mem[store][key]); return this.req(store, 'readonly', (s) => s.get(key)); },
+  put(store, key, val) { if (this.mem) { this.mem[store][key] = val; return Promise.resolve(); } return this.req(store, 'readwrite', (s) => s.put(val, key)); },
+  del(store, key) { if (this.mem) { delete this.mem[store][key]; return Promise.resolve(); } return this.req(store, 'readwrite', (s) => s.delete(key)); },
+  all(store) {
+    if (this.mem) return Promise.resolve({ ...this.mem[store] });
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store); const s = t.objectStore(store); const out = {};
+      const c = s.openCursor(); c.onsuccess = () => { const cur = c.result; if (cur) { out[cur.key] = cur.value; cur.continue(); } else res(out); }; c.onerror = () => rej(c.error);
+    });
+  },
+};
+
+// ================= state =================
+const ST = {
+  recs: {}, sessions: {},
+  cfg: { u: 0, exit: 2, askConf: true, theme: 'auto', lastBackup: 0, ncbeOpen: false, pace: 1.8, count: 33, mode: 'exam', pool: 'unseen', groups: ['CON'], shuffle: true, blockN: 0, backupSnooze: 0 },
+};
+const CH = new Map(); // chunk -> Set(qid)
+const chunkOf = (qid) => { const i = qid.lastIndexOf('-'); return qid.slice(0, i) + '_' + Math.floor((parseInt(qid.slice(i + 1), 10) - 1) / 50); };
+function indexRec(qid) { const c = chunkOf(qid); if (!CH.has(c)) CH.set(c, new Set()); CH.get(c).add(qid); }
+function chunkRecs(c) { const o = {}; for (const q of CH.get(c) || []) if (ST.recs[q]) o[q] = ST.recs[q]; return o; }
+function mergeRec(a, b) {
+  if (!a) return clone(b); if (!b) return a;
+  const out = { ...a }; const seen = new Set((a.a || []).map((x) => x[0])); const at = [...(a.a || [])];
+  for (const x of b.a || []) if (!seen.has(x[0])) at.push(x);
+  at.sort((x, y) => x[1] - y[1]); out.a = at;
+  for (const k of ['r', 'n', 'f', 'w']) if (b[k] && (!a[k] || b[k][1] > a[k][1])) out[k] = b[k];
+  if (!out.h && b.h) out.h = b.h;
+  return out;
+}
+function docBody(key) {
+  if (key.startsWith('q_')) return { recs: chunkRecs(key.slice(2)), u: now() };
+  if (key.startsWith('s_')) return ST.sessions[key.slice(2)] || null;
+  if (key === 'cfg') return ST.cfg;
+  return null;
+}
+const Local = {
+  dirty: new Set(), t: null,
+  mark(k) { this.dirty.add(k); clearTimeout(this.t); this.t = setTimeout(() => this.flush(), 400); },
+  async flush() {
+    const ks = [...this.dirty]; this.dirty.clear();
+    for (const k of ks) { const b = docBody(k); try { if (b) await IDB.put('kv', k, clone(b)); } catch (e) { /* storage full */ } }
+  },
+};
+function touchRec(qid) { indexRec(qid); const k = 'q_' + chunkOf(qid); Local.mark(k); Sync.mark(k); }
+function touchSession(s, remote = true) { if (s.virtual) return; s.u = now(); Local.mark('s_' + s.id); if (remote) Sync.mark('s_' + s.id); }
+let cfgT = null;
+function touchCfg() { ST.cfg.u = now(); Local.mark('cfg'); clearTimeout(cfgT); cfgT = setTimeout(() => Sync.mark('cfg'), 800); }
+async function loadLocal() {
+  const kv = await IDB.all('kv');
+  for (const [k, v] of Object.entries(kv)) {
+    if (k.startsWith('q_')) for (const [qid, r] of Object.entries(v.recs || {})) { ST.recs[qid] = mergeRec(ST.recs[qid], r); indexRec(qid); }
+    else if (k.startsWith('s_')) ST.sessions[k.slice(2)] = v;
+    else if (k === 'cfg') ST.cfg = { ...ST.cfg, ...v };
+  }
+}
+
+// ================= cloud sync =================
+const Sync = {
+  col: null, status: 'local', dirty: new Set(), busy: false, ro: false, seeded: false, lastOk: 0, t: null,
+  set(s) { this.status = s; renderSync(); },
+  async init() {
+    if (!window.claude || typeof window.claude.use !== 'function') { this.set('local'); return; }
+    this.set('connecting');
+    try {
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) { this.set('local'); return; }
+      const uid = await user.id();
+      if (!uid) { this.set('local'); return; }
+      this.col = db.collection('data/users/' + uid);
+      const to = setTimeout(() => { if (this.status === 'connecting') this.set('offline'); }, 10000);
+      this.col.onSnapshot((snap) => {
+        this.onSnap(snap);
+        if (!snap.metadata.fromCache) { clearTimeout(to); if (!this.ro && this.status !== 'syncing') this.set('on'); this.lastOk = now(); this.kick(); }
+      }, (err) => { clearTimeout(to); this.set(err && err.code === 'revoked' ? 'local' : 'error'); });
+    } catch (e) { this.set('local'); }
+  },
+  onSnap(snap) {
+    let changed = false; const remote = new Set();
+    for (const d of snap.docs) {
+      remote.add(d.id); const data = d.data(); if (!data) continue;
+      if (d.id.startsWith('q_')) {
+        const ch = d.id.slice(2); const recs = data.recs || {}; let differs = false;
+        for (const [qid, r] of Object.entries(recs)) {
+          const cur = ST.recs[qid]; const m = mergeRec(cur, r); const ms = JSON.stringify(m);
+          if (!cur || ms !== JSON.stringify(cur)) { ST.recs[qid] = m; indexRec(qid); changed = true; Local.mark(d.id); }
+          if (ms !== JSON.stringify(r)) differs = true;
+        }
+        for (const qid of CH.get(ch) || []) if (!(qid in recs)) differs = true;
+        if (differs) this.mark(d.id);
+      } else if (d.id.startsWith('s_')) {
+        const sid = d.id.slice(2); const cur = ST.sessions[sid];
+        if (ACTIVE && ACTIVE.s && ACTIVE.s.id === sid) continue;
+        if (!cur || (data.u || 0) > (cur.u || 0)) { ST.sessions[sid] = clone(data); Local.mark(d.id); changed = true; }
+        else if ((cur.u || 0) > (data.u || 0)) this.mark(d.id);
+      } else if (d.id === 'cfg') {
+        if ((data.u || 0) > (ST.cfg.u || 0)) { ST.cfg = { ...ST.cfg, ...clone(data) }; Local.mark('cfg'); changed = true; applyTheme(); }
+        else if ((ST.cfg.u || 0) > (data.u || 0)) this.mark('cfg');
+      }
+    }
+    if (!snap.metadata.fromCache && !this.seeded) {
+      this.seeded = true;
+      for (const ch of CH.keys()) if (!remote.has('q_' + ch)) this.mark('q_' + ch);
+      for (const sid in ST.sessions) if (!remote.has('s_' + sid)) this.mark('s_' + sid);
+      if (!remote.has('cfg') && ST.cfg.u) this.mark('cfg');
+    }
+    if (changed) softRender();
+  },
+  mark(k) { if (!this.col || this.ro) return; this.dirty.add(k); clearTimeout(this.t); this.t = setTimeout(() => this.kick(), 1500); },
+  async kick() {
+    if (this.busy || !this.col || this.ro || !this.seeded) return;
+    const k = this.dirty.values().next().value; if (!k) { if (this.status === 'syncing') this.set('on'); return; }
+    this.dirty.delete(k); const body = docBody(k); if (!body) { this.kick(); return; }
+    this.busy = true; if (this.status !== 'syncing') this.set('syncing');
+    try { await this.col.doc(k).set(clone(body)); this.lastOk = now(); }
+    catch (e) {
+      const c = e && e.code; this.busy = false;
+      if (c === 'invalid_argument' || c === 'not_granted') { this.ro = true; this.set('readonly'); return; }
+      if (c === 'quota_exceeded') { this.set('error'); toast('云端空间已满，进度仍保存在本机'); return; }
+      this.dirty.add(k); this.set('offline'); setTimeout(() => this.kick(), 5000 + Math.random() * 4000); return;
+    }
+    this.busy = false;
+    if (this.dirty.size) setTimeout(() => this.kick(), 200); else this.set('on');
+  },
+};
+const SYNC_TEXT = {
+  local: ['', '仅本机保存'], connecting: ['warn', '连接云端…'], on: ['on', '已云同步'], syncing: ['warn', '同步中…'],
+  offline: ['warn', '离线，联网后自动同步'], readonly: ['', '此账号仅本机保存'], error: ['warn', '同步出错，进度在本机'],
+};
+function renderSync() { const [c, t] = SYNC_TEXT[Sync.status] || SYNC_TEXT.local; for (const el of $$('.syncpill')) el.innerHTML = `<span class="dot ${c}"></span>${t}`; }
+
+// ================= question bank =================
+const BANK = {}; const Q = new Map();
+const PDF_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/legacy/build/';
+const PDF_OPTS = { isEvalSupported: false, disableFontFace: true, useSystemFonts: false, verbosity: 0 };
+let PDFJS = null;
+async function loadPdfjs() {
+  if (PDFJS) return PDFJS;
+  const m = await import(PDF_BASE + 'pdf.min.mjs');
+  m.GlobalWorkerOptions.workerSrc = PDF_BASE + 'pdf.worker.min.mjs';
+  PDFJS = m; return m;
+}
+async function loadBanks() {
+  for (const k of Object.keys(BANK)) delete BANK[k]; Q.clear();
+  const all = await IDB.all('banks');
+  for (const [code, b] of Object.entries(all)) { BANK[code] = b; for (const q of b.qs) { q.code = code; Q.set(q.id, q); } }
+  migrateHashes();
+}
+function migrateHashes() {
+  const byHash = new Map(); for (const q of Q.values()) byHash.set(q.hash, q.id);
+  for (const [qid, r] of Object.entries(ST.recs)) {
+    if (!r.h) continue; const q = Q.get(qid); if (q && q.hash === r.h) continue;
+    const to = byHash.get(r.h); if (!to || to === qid) continue;
+    ST.recs[to] = mergeRec(ST.recs[to], r); delete ST.recs[qid];
+    const oc = chunkOf(qid); CH.get(oc)?.delete(qid); Local.mark('q_' + oc); Sync.mark('q_' + oc); touchRec(to);
+  }
+}
+async function importFiles(entries, keepPdf, onProg) {
+  const pdfjs = await loadPdfjs(); const done = [];
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i]; const buf = await e.file.arrayBuffer(); const copy = keepPdf ? buf.slice(0) : null;
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(buf), ...PDF_OPTS }).promise;
+    const pages = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const page = await doc.getPage(p); const tc = await page.getTextContent();
+      pages.push(itemsToLines(tc.items)); page.cleanup();
+      if (p % 8 === 0 || p === doc.numPages) { onProg(i, p, doc.numPages); await tick(); }
+    }
+    await doc.destroy();
+    const parsed = segmentBank(pages); const w = e.code === 'NCBE' ? 3 : 4;
+    const qs = parsed.map((q, k) => ({ id: e.code + '-' + String(k + 1).padStart(w, '0'), n: k + 1, stem: q.stem, options: q.options, expl: q.expl, obj: q.obj, refs: q.refs, ans: q.answer, qPage: q.qPage, ePages: q.ePages, hash: q.hash }));
+    const rec = { code: e.code, file: e.file.name, size: e.file.size, importedAt: now(), n: qs.length, nAns: qs.filter((q) => q.ans).length, hasPdf: !!copy, qs };
+    await IDB.put('banks', e.code, rec);
+    if (copy) { try { await IDB.put('pdfs', e.code, copy); } catch (err) { rec.hasPdf = false; await IDB.put('banks', e.code, rec); } }
+    else await IDB.del('pdfs', e.code);
+    delete PDFDOCS[e.code];
+    done.push([e.code, qs.length]);
+  }
+  await loadBanks();
+  return done;
+}
+const PDFDOCS = {};
+async function getPdfDoc(code) {
+  if (PDFDOCS[code]) return PDFDOCS[code];
+  const buf = await IDB.get('pdfs', code); if (!buf) return null;
+  const pdfjs = await loadPdfjs();
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)), ...PDF_OPTS }).promise;
+  PDFDOCS[code] = doc; return doc;
+}
+async function renderPages(box, code, pages) {
+  box.innerHTML = '<div class="muted small">正在渲染原页…</div>';
+  try {
+    const doc = await getPdfDoc(code);
+    if (!doc) { box.innerHTML = '<div class="muted small">这台设备没有保存原 PDF。到“题库”重新导入时勾选“保存原 PDF”即可查看。</div>'; return; }
+    box.innerHTML = '';
+    for (const p of pages) {
+      const page = await doc.getPage(p); const w = Math.max(320, box.clientWidth || 700);
+      const v1 = page.getViewport({ scale: 1 }); const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const vp = page.getViewport({ scale: (w / v1.width) * dpr });
+      const cv = document.createElement('canvas'); cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
+      cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', `PDF 第 ${p} 页`);
+      box.appendChild(cv);
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    }
+  } catch (e) { box.innerHTML = '<div class="muted small">原页渲染失败：' + esc(e && e.message) + '</div>'; }
+}
+
+// ================= derived =================
+function wbState(r) {
+  const res = { inWB: false, due: null, streak: 0, wrongN: 0, guessN: 0, lastTs: 0 };
+  if (!r) return res;
+  const ev = (r.a || []).map((x) => ({ ts: x[1], ok: !!x[3], cf: x[4] || 0 }));
+  if (r.w) ev.push({ ts: r.w[1], man: r.w[0] }); ev.sort((a, b) => a.ts - b.ts);
+  const exit = ST.cfg.exit || 2; let step = 0;
+  for (const e of ev) {
+    if (e.man === 'in') { res.inWB = true; res.streak = 0; step = 0; res.due = dayNum(e.ts); continue; }
+    if (e.man === 'out') { res.inWB = false; res.due = null; continue; }
+    res.lastTs = e.ts;
+    const bad = !e.ok || e.cf >= 1;
+    if (!e.ok) res.wrongN++; else if (e.cf >= 1) res.guessN++;
+    if (bad) { res.inWB = true; res.streak = 0; step = 0; res.due = dayNum(e.ts) + INTERVALS[0]; }
+    else if (res.inWB && dayNum(e.ts) >= res.due) {
+      res.streak++;
+      if (res.streak >= exit) { res.inWB = false; res.due = null; }
+      else { step = Math.min(step + 1, INTERVALS.length - 1); res.due = dayNum(e.ts) + INTERVALS[step]; }
+    }
+  }
+  return res;
+}
+function addAttempt(qid, ch, cf, sec, md) {
+  const q = Q.get(qid); if (!q) return;
+  const r = ST.recs[qid] || (ST.recs[qid] = { a: [] }); r.a = r.a || [];
+  r.a.push([rid(), now(), ch || '', ch && ch === q.ans ? 1 : 0, cf || 0, Math.round(sec || 0), md]);
+  if (!r.h) r.h = q.hash;
+  touchRec(qid);
+}
+function setRecField(qid, k, v) { const r = ST.recs[qid] || (ST.recs[qid] = { a: [] }); r[k] = [v, now()]; if (!r.h && Q.get(qid)) r.h = Q.get(qid).hash; touchRec(qid); }
+function availableCodes() { return Object.keys(BANK).filter((c) => c !== 'NCBE' || ST.cfg.ncbeOpen); }
+function poolIds(codes, pool) {
+  const out = [];
+  for (const c of codes) {
+    const b = BANK[c]; if (!b) continue;
+    for (const q of b.qs) {
+      if (!q.ans) continue; const r = ST.recs[q.id]; const at = (r && r.a) || []; let keep = true;
+      if (pool === 'unseen') keep = !at.length; else if (pool === 'wrong') keep = at.some((x) => !x[3]);
+      else if (pool === 'flag') keep = !!(r && r.f && r.f[0]); else if (pool === 'wb') keep = wbState(r).inWB;
+      if (keep) out.push(q.id);
+    }
+  }
+  return out;
+}
+function dueIds() { const t = today(); const out = []; for (const [qid, r] of Object.entries(ST.recs)) { if (!Q.has(qid)) continue; const w = wbState(r); if (w.inWB && w.due !== null && w.due <= t) out.push(qid); } return out; }
+
+// ================= shell & router =================
+const TABS = [['home', '组卷', I.plus], ['wrongbook', '错题本', I.book], ['stats', '统计', I.chart], ['library', '题库', I.folder], ['more', '更多', I.more]];
+let VIEW = 'home'; let ACTIVE = null; let PAUSED = false;
+function applyTheme() { const t = ST.cfg.theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+function shell(inner) {
+  const nav = TABS.map(([k, n]) => `<a href="#${k}" ${VIEW === k ? 'aria-current="page"' : ''}>${n}</a>`).join('');
+  const bnav = TABS.map(([k, n, ic]) => `<a href="#${k}" ${VIEW === k ? 'aria-current="page"' : ''}>${ic}<span>${n}</span></a>`).join('');
+  return `<header class="topnav"><div class="in"><div class="brand">MBE 刷题器</div><nav class="tabs" aria-label="主导航">${nav}</nav><div class="syncpill"></div></div></header>
+  <div class="page">${inner}</div><nav class="bottomnav" aria-label="底部导航">${bnav}</nav>`;
+}
+function go(view) { if (location.hash !== '#' + view) location.hash = view; else route(); }
+function route() {
+  const h = (location.hash || '#home').slice(1);
+  VIEW = TABS.some((t) => t[0] === h) ? h : 'home';
+  if (ACTIVE && !ACTIVE.keep) { saveActive(); ACTIVE = null; }
+  if (ACTIVE) ACTIVE.keep = false;
+  render();
+}
+function render() {
+  document.body.classList.toggle('in-quiz', !!ACTIVE);
+  if (ACTIVE) { renderActive(); return; }
+  const v = { home: viewHome, wrongbook: viewWrong, stats: viewStats, library: viewLibrary, more: viewMore }[VIEW] || viewHome;
+  $('#app').innerHTML = shell(v());
+  renderSync(); bindView();
+}
+let softT = null;
+function softRender() { clearTimeout(softT); softT = setTimeout(() => { if (!ACTIVE && !IMPORTING && !document.activeElement?.matches('textarea,input')) render(); }, 300); }
+
+// ================= home =================
+function groupsAll() { return ST.cfg.ncbeOpen && BANK.NCBE ? GROUPS.concat([{ k: 'NCBE', n: 'NCBE 官方题', c: ['NCBE'] }]) : GROUPS; }
+function bankEmpty() { return !Object.keys(BANK).length; }
+function viewHome() {
+  if (bankEmpty()) return `<div class="card empty"><h1>先导入题库</h1><p class="muted">把 9 个 UWorld/NCBE PDF 导入这台设备，题目只存在本机。</p><a class="btn primary big" href="#library">去导入</a></div>`;
+  const c = ST.cfg; let codes = groupsAll().filter((g) => c.groups.includes(g.k)).flatMap((g) => g.c).filter((x) => BANK[x]);
+  if (!codes.length) { const g0 = groupsAll().find((g) => g.c.some((x) => BANK[x])); if (g0) { c.groups = [g0.k]; codes = g0.c.filter((x) => BANK[x]); } }
+  const avail = poolIds(codes, c.pool).length; const total = Math.round(c.count * c.pace * 60);
+  const chips = groupsAll().filter((g) => g.c.some((x) => BANK[x])).map((g) => { const n = g.c.reduce((s, x) => s + (BANK[x]?.n || 0), 0); return `<button type="button" class="chip" data-grp="${g.k}" aria-pressed="${c.groups.includes(g.k)}">${g.n}<span class="n">${n}</span></button>`; }).join('');
+  const pools = [['unseen', '未做过'], ['wrong', '做错过'], ['flag', '已标记'], ['wb', '错题本中'], ['all', '全部']].map(([k, n]) => `<button type="button" data-pool="${k}" aria-pressed="${c.pool === k}">${n}</button>`).join('');
+  const active = Object.values(ST.sessions).filter((s) => !s.done).sort((a, b) => b.u - a.u).slice(0, 3);
+  const cont = active.length ? active.map((s) => { const ans = s.mode === 'exam' ? Object.keys(s.ans).length : Object.keys(s.sub).length; return `<div class="row between"><div><div>${esc(s.title)}</div><div class="small muted">${s.mode === 'exam' ? '考试模式' : '练习模式'} · 已做 ${ans} / ${s.qids.length}${s.mode === 'exam' && s.lim ? ' · 剩余 ' + fmtSec(s.lim - s.el) : ''}</div></div><button class="btn ghost" data-resume="${s.id}">${s.mode !== 'exam' && s.qids.every((q) => s.sub[q]) ? '看成绩' : '继续'}</button></div>`; }).join('') : '<div class="small muted">没有未完成的题组</div>';
+  const due = dueIds().length;
+  const prog = GROUPS.filter((g) => g.c.some((x) => BANK[x])).map((g) => { let n = 0, d = 0, ok = 0; for (const code of g.c) for (const q of BANK[code]?.qs || []) { n++; const a = ST.recs[q.id]?.a; if (a && a.length) { d++; if (a[0][3]) ok++; } } return `<div class="prog"><div class="row between small"><span>${g.n}</span><span class="muted">${d} / ${n} · 首做正确率 ${pct(ok, d)}</span></div><div class="bar"><i style="width:${n ? (d / n) * 100 : 0}%"></i></div></div>`; }).join('');
+  const mock = BANK.NCBE ? [1, 2].map((k) => { const s = Object.values(ST.sessions).filter((x) => x.kind === 'mock' + k).sort((a, b) => b.u - a.u)[0]; const st = s ? (s.done ? `已完成 · ${mockScore(s)}` : '进行中') : '100 题 · 3 小时'; return `<button class="btn" style="justify-content:space-between" data-mock="${k}"><span>第 ${k} 场</span><span class="small muted">${st}</span></button>`; }).join('') : '<div class="small muted">导入 NCBE 文件后可用</div>';
+  const bk = backupBanner();
+  return `${bk}<div class="cols" style="margin-top:${bk ? 16 : 0}px"><section class="colmain"><div class="card stack" style="gap:22px">
+    <h1>新建一组题</h1>
+    <div class="field"><div class="label">科目（可多选）</div><div class="chips">${chips}</div></div>
+    <div class="field"><div class="label">题池</div><div class="seg">${pools}</div><div class="small muted">当前条件下可用 ${avail} 题</div></div>
+    <div class="field"><div class="label">模式</div><div class="modes">
+      <button type="button" class="mode" data-mode="practice" aria-pressed="${c.mode === 'practice'}"><b>练习模式</b><span>每题提交后马上看对错和解析</span></button>
+      <button type="button" class="mode" data-mode="exam" aria-pressed="${c.mode === 'exam'}"><b>考试模式</b><span>倒计时，隐藏科目，交卷后统一出成绩</span></button></div></div>
+    <div class="row" style="gap:16px 32px;align-items:flex-end">
+      <div class="field"><label class="label" for="qcount">题数</label><input id="qcount" class="num" type="number" min="1" max="200" value="${c.count}"></div>
+      <div class="field"><label class="label" for="qpace">每题时间（分钟）</label><input id="qpace" class="num" type="number" min="0.5" max="10" step="0.1" value="${c.pace}"></div>
+      <div class="small muted" style="padding-bottom:10px">总时长 ${fmtSec(total)}${c.mode === 'practice' ? '（练习模式只计时不限时）' : ''}</div></div>
+    <div class="row" style="gap:6px 26px"><label class="check"><input type="checkbox" id="shuf" ${c.shuffle ? 'checked' : ''}>题目乱序</label><label class="check"><input type="checkbox" id="askc" ${c.askConf ? 'checked' : ''}>作答时记录把握（确定 / 犹豫 / 猜的）</label></div>
+    <div class="row"><button class="btn primary big" id="start" ${avail ? '' : 'disabled'}>开始做题</button><span class="small muted">中途退出会自动保存</span></div>
+  </div></section>
+  <aside class="colside">
+    <section class="card stack"><h2>继续上次</h2>${cont}</section>
+    <section class="card stack"><h2>今天要复习</h2><div class="row" style="align-items:baseline;gap:8px"><span class="big-n" style="color:var(--bad)">${due}</span><span class="small muted">道错题到期（含犹豫或猜对的）</span></div><div class="small muted">间隔 1 / 3 / 7 天推回，连续做对 ${ST.cfg.exit} 次移出</div><div><button class="btn ghost" id="dueGo" ${due ? '' : 'disabled'}>开始复习</button></div></section>
+    <section class="card stack"><h2>NCBE 全真模考</h2><div class="small muted">官方 200 题默认不进日常题池</div>${mock}</section>
+    <section class="card stack" style="gap:12px"><h2>各科进度</h2>${prog}</section>
+  </aside></div>`;
+}
+function mockScore(s) { let ok = 0; for (const q of s.qids) if (s.ans[q] && s.ans[q] === Q.get(q)?.ans) ok++; return `${ok} / ${s.qids.length}`; }
+function backupBanner() {
+  const has = Object.keys(ST.recs).length; if (!has) return '';
+  const days = ST.cfg.lastBackup ? Math.floor((now() - ST.cfg.lastBackup) / 864e5) : null;
+  if (days !== null && days < 7) return ''; if (ST.cfg.backupSnooze && now() < ST.cfg.backupSnooze) return '';
+  return `<div class="banner"><div>${days === null ? '还没有导出过进度备份。' : `上次备份是 ${days} 天前。`}备份文件可以在换账号或换设备时恢复进度。</div><div class="row"><button class="btn primary" data-act="backup">导出备份</button><button class="btn" data-act="snooze">一周后提醒</button></div></div>`;
+}
+
+// ================= library =================
+let IMPORTING = false; let PICKED = [];
+function viewLibrary() {
+  const rows = Object.values(BANK).sort((a, b) => Object.keys(CODES).indexOf(a.code) - Object.keys(CODES).indexOf(b.code)).map((b) => `<tr><td>${CODES[b.code]}</td><td class="small">${esc(b.file)}</td><td>${b.n}</td><td>${b.nAns}${b.nAns < b.n ? ` <span class="tag bad">${b.n - b.nAns} 题未识别答案</span>` : ''}</td><td class="small">${fmtFull(b.importedAt)}</td><td>${b.hasPdf ? '已保存' : '<span class="muted">未保存</span>'}</td><td><button class="btn danger" style="min-height:34px;padding:0 10px;font-size:13px" data-delbank="${b.code}">删除</button></td></tr>`).join('');
+  const total = Object.values(BANK).reduce((s, b) => s + b.n, 0);
+  const picked = PICKED.map((p, i) => `<div class="imp"><span class="nm" title="${esc(p.file.name)}">${esc(p.file.name)}</span><label class="sr" for="pc${i}">科目</label><select id="pc${i}" data-pick="${i}"><option value="">选择科目</option>${Object.entries(CODES).map(([k, n]) => `<option value="${k}" ${p.code === k ? 'selected' : ''}>${n}</option>`).join('')}</select><span class="small muted" id="pp${i}"></span></div>`).join('');
+  return `<div class="cols"><section class="colmain">
+    <div class="card stack" style="gap:16px"><h1>导入题库 PDF</h1>
+      <p class="muted" style="margin:0">选择 UWorld 分科 PDF 和 NCBE 200 题 PDF（可一次多选）。解析在这台设备上完成，题目只保存在本机，不上传云端；换设备时在那台设备上再导入一次。</p>
+      <div class="row"><label class="btn ghost" for="pdfin">选择 PDF 文件</label><input id="pdfin" class="sr" type="file" accept=".pdf,application/pdf" multiple></div>
+      ${PICKED.length ? `<div class="importlist">${picked}</div><label class="check"><input type="checkbox" id="keeppdf" checked>保存原 PDF（用于“查看原页”，约占 50 MB）</label><div class="row"><button class="btn primary big" id="doimport" ${IMPORTING ? 'disabled' : ''}>开始导入</button><span class="small muted" id="impstat"></span></div>` : ''}
+    </div>
+    <div class="card stack"><div class="row between"><h2>已导入</h2><span class="small muted">共 ${total} 题</span></div>${rows ? `<div class="scrollx"><table class="t"><thead><tr><th>科目</th><th>文件</th><th>题数</th><th>答案已识别</th><th>导入时间</th><th>原 PDF</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="muted small">还没有导入任何题库。</div>'}</div>
+  </section><aside class="colside">
+    <section class="card stack"><h2>NCBE 官方题</h2><p class="small muted" style="margin:0">建议留作全真模考。打开后这 200 题也会出现在日常组卷的题池里。</p><label class="check"><input type="checkbox" id="ncbeopen" ${ST.cfg.ncbeOpen ? 'checked' : ''}>放进日常题池</label></section>
+    <section class="card stack"><h2>关于答案</h2><p class="small muted" style="margin:0">PDF 里没有直接标出答案。程序根据解析中逐个讨论的错误选项（Choice X）反推正确答案，未能唯一确定的题会标出来并从题池排除。</p></section>
+    <section class="card stack"><h2>手机上的注意</h2><p class="small muted" style="margin:0">iPhone 可能在长期不用时清理网页的本机存储。题库被清理后重新导入即可，做题进度在云端，不受影响。</p></section>
+  </aside></div>`;
+}
+
+// ================= wrong book =================
+let WBF = { grp: '', reason: '', status: 'due', guess: false, limit: 60 };
+function wbItems() {
+  const t = today(); const out = [];
+  for (const [qid, r] of Object.entries(ST.recs)) {
+    const q = Q.get(qid); if (!q) continue; const w = wbState(r);
+    if (!w.wrongN && !w.guessN && !(r.w && r.w[0] === 'in')) continue;
+    if (WBF.status === 'due' && !(w.inWB && w.due <= t)) continue;
+    if (WBF.status === 'in' && !w.inWB) continue;
+    if (WBF.status === 'out' && w.inWB) continue;
+    if (WBF.grp && groupOf(q.code).k !== WBF.grp) continue;
+    if (WBF.reason && (!r.r || String(r.r[0]) !== WBF.reason)) continue;
+    if (WBF.guess && !(w.guessN && !w.wrongN)) continue;
+    out.push({ q, r, w });
+  }
+  out.sort((a, b) => (a.w.due ?? 1e9) - (b.w.due ?? 1e9) || b.w.lastTs - a.w.lastTs);
+  return out;
+}
+function viewWrong() {
+  const t = today(); let inN = 0, dueN = 0;
+  for (const r of Object.values(ST.recs)) { const w = wbState(r); if (w.inWB) { inN++; if (w.due <= t) dueN++; } }
+  const items = wbItems(); const shown = items.slice(0, WBF.limit);
+  const grpOpts = GROUPS.concat([{ k: 'NCBE', n: 'NCBE 官方题' }]).map((g) => `<option value="${g.k}" ${WBF.grp === g.k ? 'selected' : ''}>${g.n}</option>`).join('');
+  const rsOpts = REASONS.map(([c, n]) => `<option value="${c}" ${WBF.reason === String(c) ? 'selected' : ''}>${n}</option>`).join('');
+  const st = [['due', '今天到期'], ['in', '在错题本'], ['out', '已移出']].map(([k, n]) => `<button type="button" data-wbs="${k}" aria-pressed="${WBF.status === k}">${n}</button>`).join('');
+  const list = shown.map(({ q, r, w }, i) => `<li><button class="item" data-wbopen="${i}"><span class="row" style="gap:8px;font-size:12px"><span class="tag acc">${groupOf(q.code).n}</span><span class="muted">${q.id}</span><span style="flex-grow:1"></span><span class="muted">${w.inWB ? (w.due <= t ? '今天复习' : fmtDay(w.due)) : '已移出'}</span></span><span class="st">${esc(q.stem[0] || '')}</span><span class="row" style="gap:6px;font-size:12px">${r.r ? `<span class="tag">${reasonName(r.r[0])}</span>` : '<span class="tag">未标错因</span>'}<span class="tag bad">${w.wrongN ? '错 ' + w.wrongN + ' 次' : '猜对 ' + w.guessN + ' 次'}</span>${r.n && r.n[0] ? '<span class="tag">有笔记</span>' : ''}</span></button></li>`).join('');
+  return `<div class="cols"><section class="colmain">
+    <div class="card stack" style="gap:14px"><div class="row between"><h1>错题本</h1><div class="row"><button class="btn" data-act="xdocx">${I.dl}导出 Word</button><button class="btn" data-act="xlsx">${I.dl}导出 Excel</button></div></div>
+      <div class="row small muted" style="gap:18px"><span><b class="big-n" style="font-size:22px;color:var(--ink)">${inN}</b> 题在本</span><span><b class="big-n" style="font-size:22px;color:var(--bad)">${dueN}</b> 今天到期</span></div>
+      <div><button class="btn primary" id="dueGo" ${dueN ? '' : 'disabled'}>复习今天到期的 ${dueN} 题</button></div>
+      <div class="row"><div class="seg">${st}</div>
+        <label class="sr" for="wbg">科目</label><select id="wbg" class="num" style="width:auto"><option value="">全部科目</option>${grpOpts}</select>
+        <label class="sr" for="wbr">错因</label><select id="wbr" class="num" style="width:auto"><option value="">全部错因</option>${rsOpts}</select>
+        <label class="check"><input type="checkbox" id="wbguess" ${WBF.guess ? 'checked' : ''}>只看猜对的</label></div>
+      <div class="small muted">当前筛选 ${items.length} 题。Word 导出按当前筛选生成。</div>
+    </div>
+    ${items.length ? `<ul class="list">${list}</ul>${items.length > WBF.limit ? '<div><button class="btn" data-act="more">显示更多</button></div>' : ''}` : '<div class="card empty"><p class="muted" style="margin:0">这个筛选下没有题。答错或犹豫、猜对的题会自动进入错题本。</p></div>'}
+  </section></div>`;
+}
+
+// ================= stats =================
+function viewStats() {
+  let uq = 0, att = 0, first = 0, firstOk = 0, secs = 0; const cal = [[0, 0], [0, 0], [0, 0]]; const rs = {}; const days = new Map();
+  const per = {};
+  for (const [qid, r] of Object.entries(ST.recs)) {
+    const q = Q.get(qid); const a = r.a || []; if (!q || !a.length) continue;
+    uq++; att += a.length; first++; if (a[0][3]) firstOk++;
+    const g = groupOf(q.code).k; per[g] = per[g] || { d: 0, ok: 0, last: 0, sec: 0, n: 0 }; per[g].d++; if (a[0][3]) per[g].ok++; if (a[a.length - 1][3]) per[g].last++;
+    for (const x of a) { secs += x[5]; per[g].sec += x[5]; per[g].n++; cal[x[4] || 0][0]++; if (x[3]) cal[x[4] || 0][1]++; const dn = dayNum(x[1]); days.set(dn, (days.get(dn) || 0) + 1); }
+    if (r.r && wbState(r).wrongN) rs[r.r[0]] = (rs[r.r[0]] || 0) + 1;
+  }
+  const t = today(); const dl = []; let mx = 1; for (let i = 13; i >= 0; i--) { const v = days.get(t - i) || 0; dl.push(v); mx = Math.max(mx, v); }
+  const rows = GROUPS.concat([{ k: 'NCBE', n: 'NCBE 官方题', c: ['NCBE'] }]).filter((g) => g.c.some((x) => BANK[x])).map((g) => { const p = per[g.k] || { d: 0, ok: 0, last: 0, sec: 0, n: 0 }; const n = g.c.reduce((s, x) => s + (BANK[x]?.n || 0), 0); return `<tr><td>${g.n}</td><td>${p.d} / ${n}</td><td>${pct(p.ok, p.d)}</td><td>${pct(p.last, p.d)}</td><td>${p.n ? fmtSec(p.sec / p.n) : '—'}</td></tr>`; }).join('');
+  const rsum = Object.values(rs).reduce((a, b) => a + b, 0);
+  const rrows = REASONS.map(([c, n]) => `<div class="prog"><div class="row between small"><span>${n}</span><span class="muted">${rs[c] || 0}</span></div><div class="bar"><i style="width:${rsum ? ((rs[c] || 0) / rsum) * 100 : 0}%"></i></div></div>`).join('');
+  return `<div class="stack" style="gap:16px">
+    <div class="card"><div class="kpis"><div class="kpi"><span class="small muted">做过的题</span><b>${uq}</b></div><div class="kpi"><span class="small muted">作答次数</span><b>${att}</b></div><div class="kpi"><span class="small muted">首做正确率</span><b>${pct(firstOk, first)}</b></div><div class="kpi"><span class="small muted">平均每题用时</span><b>${att ? fmtSec(secs / att) : '—'}</b></div></div></div>
+    <div class="cols"><section class="colmain"><div class="card stack"><h2>分科</h2><div class="scrollx"><table class="t"><thead><tr><th>科目</th><th>做过</th><th>首做正确率</th><th>最近一次正确率</th><th>平均用时</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+      <div class="card stack"><h2>近 14 天作答量</h2><div class="days" aria-label="近 14 天每天作答题数">${dl.map((v) => `<i style="height:${(v / mx) * 100}%" title="${v}"></i>`).join('')}</div><div class="row between small muted"><span>${fmtDay(t - 13)}</span><span>今天</span></div></div></section>
+    <aside class="colside"><div class="card stack"><h2>把握校准</h2><table class="t"><thead><tr><th>把握</th><th>次数</th><th>正确率</th></tr></thead><tbody>${CONF.map((n, i) => `<tr><td>${n}</td><td>${cal[i][0]}</td><td>${pct(cal[i][1], cal[i][0])}</td></tr>`).join('')}</tbody></table><p class="small muted" style="margin:0">“确定”的正确率明显低于 90%，说明有规则记错了却不自知，这类题最值得回看。</p></div>
+      <div class="card stack" style="gap:12px"><h2>错因分布</h2>${rsum ? rrows : '<div class="small muted">在解析页给错题标上错因后，这里会显示分布。</div>'}</div></aside></div></div>`;
+}
+
+// ================= more =================
+function viewMore() {
+  const c = ST.cfg; const st = SYNC_TEXT[Sync.status] || SYNC_TEXT.local;
+  const syncNote = { on: '做题记录、错题本、笔记和未完成的题组会同步到你登录的 Claude 账号，换设备打开同一个链接即可继续。', syncing: '正在同步。', connecting: '正在连接云端。', offline: '暂时连不上云端，进度先存在本机，联网后自动补传。', readonly: '当前账号对这个页面只有查看权限，进度只存在本机。可以用下面的备份文件在账号之间转移进度。', local: '这里无法使用云同步，进度只存在本机。请定期导出备份。', error: '同步出错，进度先存在本机。' }[Sync.status] || '';
+  return `<div class="cols"><section class="colmain">
+    <div class="card stack"><h2>云同步</h2><div class="syncpill"></div><p class="small muted" style="margin:0">${syncNote}</p><p class="small muted" style="margin:0">云端只保存做题记录，不保存题目。</p></div>
+    <div class="card stack"><h2>备份与恢复</h2><p class="small muted" style="margin:0">备份文件（JSON）包含全部做题记录、错题本、笔记和题组，不含题目。导入时与现有记录合并，不会覆盖。</p>
+      <div class="row"><button class="btn primary" data-act="backup">${I.dl}导出备份</button><label class="btn" for="bkin">导入备份</label><input id="bkin" class="sr" type="file" accept=".json,application/json"></div>
+      <div class="small muted">${c.lastBackup ? '上次导出：' + fmtFull(c.lastBackup) : '还没有导出过备份'}</div></div>
+    <div class="card stack"><h2>导出</h2><div class="row"><button class="btn" data-act="xlsx">${I.dl}全部作答记录（Excel）</button><button class="btn" data-act="xdocx-all">${I.dl}整本错题本（Word）</button></div><p class="small muted" style="margin:0">需要 PDF 时，用 Word 打开后另存为 PDF。</p></div>
+  </section><aside class="colside">
+    <div class="card stack"><h2>设置</h2>
+      <div class="field"><div class="label">外观</div><div class="seg">${[['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']].map(([k, n]) => `<button type="button" data-theme="${k}" aria-pressed="${c.theme === k}">${n}</button>`).join('')}</div></div>
+      <div class="field"><div class="label">移出错题本的条件</div><div class="seg">${[2, 3].map((k) => `<button type="button" data-exit="${k}" aria-pressed="${c.exit === k}">按期连续做对 ${k} 次</button>`).join('')}</div></div>
+    </div>
+    <div class="card stack"><h2>在其他账号使用</h2><p class="small muted" style="margin:0">换账号打开时，进度不会自动出现在新账号里：先在这里导出备份，再到新账号打开的页面里导入。题库需要在新设备上重新导入 PDF。</p></div>
+  </aside></div>`;
+}
+
+// ================= view bindings =================
+function bindView() {
+  const app = $('#app');
+  app.onclick = async (e) => {
+    const b = e.target.closest('button,[data-act]'); if (!b) return;
+    const d = b.dataset;
+    if (d.grp) { const g = ST.cfg.groups; const i = g.indexOf(d.grp); if (i >= 0) g.splice(i, 1); else g.push(d.grp); touchCfg(); render(); }
+    else if (d.pool) { ST.cfg.pool = d.pool; touchCfg(); render(); }
+    else if (d.mode) { ST.cfg.mode = d.mode; touchCfg(); render(); }
+    else if (b.id === 'start') startBlock();
+    else if (b.id === 'dueGo') startDue();
+    else if (d.resume) resume(d.resume);
+    else if (d.mock) startMock(+d.mock);
+    else if (d.wbs) { WBF.status = d.wbs; WBF.limit = 60; render(); }
+    else if (d.wbopen !== undefined) openWbItem(+d.wbopen);
+    else if (d.delbank) { if (await confirmBox(`删除这台设备上的“${CODES[d.delbank]}”题库？做题记录会保留。`, '删除')) { await IDB.del('banks', d.delbank); await IDB.del('pdfs', d.delbank); await loadBanks(); render(); } }
+    else if (b.id === 'doimport') doImport();
+    else if (d.theme) { ST.cfg.theme = d.theme; touchCfg(); applyTheme(); render(); }
+    else if (d.exit) { ST.cfg.exit = +d.exit; touchCfg(); render(); }
+    else if (d.act === 'backup') exportBackup();
+    else if (d.act === 'snooze') { ST.cfg.backupSnooze = now() + 7 * 864e5; touchCfg(); render(); }
+    else if (d.act === 'xlsx') exportXlsx();
+    else if (d.act === 'xdocx') exportDocx(wbItems().map((x) => x.q.id), '错题本（当前筛选）');
+    else if (d.act === 'xdocx-all') { const ids = Object.entries(ST.recs).filter(([q, r]) => Q.has(q) && wbState(r).inWB).map(([q]) => q); exportDocx(ids, '错题本（全部在本）'); }
+    else if (d.act === 'more') { WBF.limit += 60; render(); }
+  };
+  app.onchange = (e) => {
+    const t = e.target;
+    if (t.id === 'qcount') { ST.cfg.count = Math.max(1, Math.min(200, parseInt(t.value, 10) || 33)); touchCfg(); render(); }
+    else if (t.id === 'qpace') { ST.cfg.pace = Math.max(0.5, Math.min(10, parseFloat(t.value) || 1.8)); touchCfg(); render(); }
+    else if (t.id === 'shuf') { ST.cfg.shuffle = t.checked; touchCfg(); }
+    else if (t.id === 'askc') { ST.cfg.askConf = t.checked; touchCfg(); }
+    else if (t.id === 'ncbeopen') { ST.cfg.ncbeOpen = t.checked; touchCfg(); }
+    else if (t.id === 'pdfin') { PICKED = [...t.files].map((f) => ({ file: f, code: detectCode(f.name) })); render(); }
+    else if (t.dataset.pick !== undefined) PICKED[+t.dataset.pick].code = t.value;
+    else if (t.id === 'wbg') { WBF.grp = t.value; render(); }
+    else if (t.id === 'wbr') { WBF.reason = t.value; render(); }
+    else if (t.id === 'wbguess') { WBF.guess = t.checked; render(); }
+    else if (t.id === 'bkin' && t.files[0]) importBackup(t.files[0]);
+  };
+}
+async function doImport() {
+  const entries = PICKED.filter((p) => p.code);
+  if (!entries.length) { toast('请先为文件选择科目'); return; }
+  const codes = entries.map((e) => e.code); if (new Set(codes).size !== codes.length) { toast('有两个文件选了同一个科目'); return; }
+  IMPORTING = true; const keep = $('#keeppdf')?.checked; $('#doimport').disabled = true;
+  try { await navigator.storage?.persist?.(); } catch (e) { /* ignore */ }
+  try {
+    const done = await importFiles(entries, keep, (i, p, n) => { const idx = PICKED.indexOf(entries[i]); const el = $('#pp' + idx); if (el) el.textContent = `${p} / ${n} 页`; const s = $('#impstat'); if (s) s.textContent = `正在解析第 ${i + 1} / ${entries.length} 个文件`; });
+    IMPORTING = false; PICKED = []; render(); toast('导入完成：' + done.map(([c, n]) => `${CODES[c]} ${n} 题`).join('，'));
+  } catch (err) { IMPORTING = false; const s = $('#impstat'); if (s) s.textContent = '导入失败：' + (err && err.message); $('#doimport').disabled = false; }
+}
+function confirmBox(msg, okText = '确定', cancelText = '取消') {
+  return new Promise((res) => {
+    const w = document.createElement('div'); w.className = 'scrim';
+    w.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="确认"><p style="margin:0;font-size:16px">${esc(msg)}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-r="0">${esc(cancelText)}</button><button class="btn primary" data-r="1">${esc(okText)}</button></div></div>`;
+    document.body.appendChild(w); w.querySelector('[data-r="1"]').focus();
+    w.onclick = (e) => { const b = e.target.closest('[data-r]'); if (b || e.target === w) { w.remove(); res(!!(b && b.dataset.r === '1')); } };
+  });
+}
+
+// ================= sessions =================
+function newSession(o) {
+  const id = 's' + now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const s = { id, t: now(), u: now(), mode: o.mode, kind: o.kind || 'block', title: o.title, qids: o.qids, ans: {}, cf: {}, st: {}, fl: {}, sec: {}, sub: {}, hl: {}, cur: 0, lim: o.lim || 0, el: 0, done: false };
+  ST.sessions[id] = s; touchSession(s); return s;
+}
+function startBlock() {
+  const c = ST.cfg; const codes = groupsAll().filter((g) => c.groups.includes(g.k)).flatMap((g) => g.c).filter((x) => BANK[x]);
+  let ids = poolIds(codes, c.pool); if (!ids.length) { toast('这个条件下没有题'); return; }
+  ids = c.shuffle ? shuffle(ids) : ids.sort(); ids = ids.slice(0, c.count);
+  c.blockN = (c.blockN || 0) + 1; touchCfg();
+  const names = groupsAll().filter((g) => c.groups.includes(g.k)).map((g) => g.n).join('+');
+  const s = newSession({ mode: c.mode, qids: ids, title: `Block ${c.blockN} · ${names}`, lim: c.mode === 'exam' ? Math.round(ids.length * c.pace * 60) : 0 });
+  openSession(s);
+}
+function startDue() {
+  const ids = shuffle(dueIds()); if (!ids.length) return;
+  const s = newSession({ mode: 'practice', kind: 'wb', qids: ids, title: `错题复习 · ${ids.length} 题` });
+  openSession(s);
+}
+async function startMock(k) {
+  const prev = Object.values(ST.sessions).filter((x) => x.kind === 'mock' + k).sort((a, b) => b.u - a.u)[0];
+  if (prev && !prev.done) { openSession(prev); return; }
+  if (prev && prev.done) {
+    const ch = await confirmBox(`第 ${k} 场已经做过（${mockScore(prev)}）。再做一次就不再是“第一次见题”的诊断成绩了。`, '查看上次成绩', '仍要重做');
+    if (ch) { ACTIVE = { s: prev, list: prev.qids, pos: 0, view: 'result', keep: false }; render(); return; }
+  }
+  const ids = BANK.NCBE.qs.filter((q) => q.ans).map((q) => q.id).slice((k - 1) * 100, k * 100);
+  const s = newSession({ mode: 'exam', kind: 'mock' + k, qids: ids, title: `NCBE 模考 · 第 ${k} 场`, lim: 3 * 3600 });
+  openSession(s);
+}
+function resume(id) {
+  const s = ST.sessions[id]; if (!s) return;
+  if (s.mode !== 'exam' && s.qids.length && s.qids.every((q) => s.sub[q])) { s.done = true; touchSession(s); ACTIVE = { s, list: s.qids, pos: 0, view: 'result', keep: false }; render(); return; }
+  openSession(s);
+}
+function openSession(s) {
+  const miss = s.qids.filter((q) => !Q.has(q)).length;
+  if (miss) { toast(`这组题有 ${miss} 题的题库不在这台设备上，请先到“题库”导入`); return; }
+  ACTIVE = { s, list: s.qids, pos: Math.min(s.cur || 0, s.qids.length - 1), view: 'quiz', keep: false };
+  PAUSED = false; LASTSEL = ''; if (location.hash !== '#home') { ACTIVE.keep = true; location.hash = 'home'; } render(); window.scrollTo(0, 0);
+}
+function saveActive() { if (ACTIVE && ACTIVE.s && !ACTIVE.s.virtual) { touchSession(ACTIVE.s); Local.flush(); } }
+function exitActive() { saveActive(); const back = ACTIVE && ACTIVE.back; ACTIVE = null; if (back) { VIEW = back; location.hash = back; } render(); }
+
+// ================= quiz rendering =================
+function curQ() { return Q.get(ACTIVE.list[ACTIVE.pos]); }
+function hlText(txt, snips) {
+  let h = esc(txt);
+  for (const s of snips || []) { const e = esc(s); if (e.length < 2) continue; const i = h.indexOf(e); if (i >= 0) h = h.slice(0, i) + '<mark>' + e + '</mark>' + h.slice(i + e.length); }
+  return h;
+}
+function explHTML(q) {
+  const parts = []; let tb = [];
+  const flush = () => { if (tb.length) { parts.push(`<div class="tblk">${tb.map(esc).join('\n')}</div>`); tb = []; } };
+  for (const p of q.expl) {
+    if (p.startsWith('\u0001')) { tb.push(p.slice(1)); continue; }
+    flush();
+    const m = /^\((Choices? [^)]{1,40})\)\s*(.*)$/.exec(p);
+    parts.push(m ? `<p><strong>(${esc(m[1])})</strong> ${esc(m[2])}</p>` : `<p>${esc(p)}</p>`);
+  }
+  flush();
+  const hasT = q.expl.some((p) => p.startsWith('\u0001'));
+  return `<section class="expl" aria-label="解析"><div class="row between"><h3>Explanation</h3><button class="btn" style="min-height:36px;font-size:13px" data-q="orig">${hasT ? '本题有表格，查看 PDF 原页' : '查看 PDF 原页'}</button></div>
+    <div class="pages hide" id="origbox"></div>
+    <div class="etext">${parts.join('')}</div>
+    ${q.obj ? `<div class="obj"><div class="k">Educational objective</div><div>${esc(q.obj)}</div></div>` : ''}
+    ${q.refs && q.refs.length ? `<details class="refs"><summary>References</summary><ul>${q.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}</section>`;
+}
+function wbPanel(q) {
+  const r = ST.recs[q.id]; const w = wbState(r); const t = today(); const rc = r && r.r ? r.r[0] : 0;
+  const hist = (r && r.a || []).slice(-8).map((x) => `<span class="tag ${x[3] ? '' : 'bad'}">${fmtDate(x[1])} ${x[2] || '未答'}${x[3] ? ' 对' : ' 错'}${x[4] ? '·' + CONF[x[4]] : ''}</span>`).join(' ');
+  return `<section class="wbp" aria-label="错题本"><div class="row between"><b>错题本</b><span class="small ${w.inWB ? '' : 'muted'}">${w.inWB ? `在本 · 下次复习 ${w.due <= t ? '今天' : fmtDay(w.due)} · 按期连续做对 ${w.streak} / ${ST.cfg.exit}` : '不在错题本'}</span></div>
+    <div class="field"><div class="label">错因</div><div class="chips">${REASONS.map(([c, n]) => `<button type="button" class="chip pill" data-q="reason" data-v="${c}" aria-pressed="${rc === c}">${n}</button>`).join('')}</div></div>
+    <div class="field"><label class="label" for="note">我的一句话规则</label><textarea id="note" placeholder="用自己的话写下这题考的规则">${esc(r && r.n ? r.n[0] : '')}</textarea></div>
+    <div class="row between"><div class="small muted">${hist || ''}</div>${w.inWB ? '<button class="btn" data-q="wbout">已掌握，移出</button>' : '<button class="btn ghost" data-q="wbin">加入错题本</button>'}</div></section>`;
+}
+function renderActive() {
+  const A = ACTIVE; if (A.view === 'result') { renderResult(); return; }
+  const s = A.s; const q = curQ(); const qid = q.id; const exam = s.mode === 'exam' && !s.done;
+  const review = A.view === 'review'; const submitted = review || (!exam && !!s.sub[qid]);
+  const myAns = s.virtual ? latestChoice(qid) : s.ans[qid];
+  const strike = (s.st[qid] || ''); const flagged = !!s.fl[qid];
+  const askConf = ST.cfg.askConf && !submitted;
+  const nav = A.list.map((id, i) => {
+    let cls = 'qn'; const a = s.virtual ? latestChoice(id) : s.ans[id];
+    if (review || (s.mode !== 'exam' && s.sub[id])) cls += a ? (a === Q.get(id)?.ans ? ' ok' : ' bad') : ' bad'; else if (a) cls += ' done';
+    if (i === A.pos) cls += ' cur';
+    return `<button type="button" class="${cls}" data-goto="${i}" aria-label="第 ${i + 1} 题">${i + 1}${s.fl[id] ? '<span class="fl"></span>' : ''}</button>`;
+  }).join('');
+  const timeTxt = s.mode === 'exam' && !s.done ? `剩余 <span id="tm">${fmtSec(s.lim - s.el)}</span>` : (s.virtual ? '' : `用时 <span id="tm">${fmtSec(s.el)}</span>`);
+  const opts = Object.entries(q.options).map(([L, txt]) => {
+    let cls = 'opt'; let mk = '';
+    if (submitted) { if (L === q.ans) { cls += ' ok'; mk = `<span class="mk" style="color:var(--ok)" role="img" aria-label="正确答案">${I.check}</span>`; } else if (L === myAns) { cls += ' bad'; mk = `<span class="mk" style="color:var(--bad)" role="img" aria-label="你的选择">${I.x}</span>`; } }
+    else if (L === myAns) cls += ' sel';
+    if (strike.includes(L)) cls += ' strike';
+    return `<div class="${cls}"><button type="button" class="om" data-opt="${L}" aria-pressed="${L === myAns}" ${submitted ? 'aria-disabled="true"' : ''}>${mk}<span class="lb">${L}.</span><span class="tx">${esc(txt)}</span></button>${submitted ? '' : `<button type="button" class="os" data-strike="${L}" aria-label="划掉选项 ${L}" aria-pressed="${strike.includes(L)}">${I.strike}</button>`}</div>`;
+  }).join('');
+  let verdict = '';
+  if (submitted) {
+    const ok = myAns && myAns === q.ans; const cf = s.virtual ? null : s.cf[qid];
+    verdict = `<div class="verdict ${ok ? 'ok' : 'bad'}">${ok ? I.check : I.x}<b>${ok ? '答对' : myAns ? '答错' : '未作答'}</b><span class="small">${myAns ? '你的答案 ' + myAns + ' · ' : ''}正确答案 ${q.ans}${cf ? ' · 你的把握：' + CONF[cf] : ''}${s.sec[qid] ? ' · 用时 ' + fmtSec(s.sec[qid]) : ''}</span></div>`;
+  }
+  const meta = exam ? `<span>第 ${A.pos + 1} 题</span>` : `<span class="tag acc">${groupOf(q.code).n}</span><span>${q.id}</span>`;
+  const last = A.pos === A.list.length - 1;
+  let mainBtn;
+  if (review) mainBtn = last ? `<button class="btn primary" data-q="close">${s.virtual ? '返回错题本' : '返回成绩'}</button>` : '<button class="btn primary" data-q="next">下一题</button>';
+  else if (exam) mainBtn = last ? '<button class="btn primary" data-q="submitExam">交卷</button>' : '<button class="btn primary" data-q="next">下一题</button>';
+  else mainBtn = submitted ? (last ? '<button class="btn primary" data-q="finish">结束，看成绩</button>' : '<button class="btn primary" data-q="next">下一题</button>') : `<button class="btn primary" data-q="submit" ${myAns ? '' : 'disabled'}>提交，看解析</button>`;
+  const right = review ? (s.virtual ? '<button class="qbtn" data-q="close">返回错题本</button>' : '<button class="qbtn" data-q="close">返回成绩</button>') : exam ? '<button class="qbtn wide" data-q="pause">' + I.pause + '暂停</button><button class="qbtn solid" data-q="submitExam">交卷</button>' : '<button class="qbtn solid" data-q="finish">结束</button>';
+  $('#app').innerHTML = `<header class="qbar"><div class="in">
+      <button class="qbtn icon" data-q="exit" aria-label="退出并保存">${I.back}</button>
+      <div class="ttl">${esc(s.title)}${review ? ' · 解析' : ''}</div>
+      <div class="pos">${A.pos + 1} / ${A.list.length}</div>
+      <button class="qbtn icon phone-only" data-q="grid" aria-label="题号">${I.grid}</button>
+      ${review ? '' : `<button class="qbtn" data-q="flag" aria-pressed="${flagged}" aria-label="标记本题">${I.flag}<span class="wide">标记</span></button>`}
+      ${timeTxt ? `<div class="timer">${I.clock}<span>${timeTxt}</span></div>` : ''}
+      ${right}</div></header>
+    <div class="qwrap"><nav class="qnav" aria-label="题号"><div class="qgrid">${nav}</div><div class="legend">${review || s.mode !== 'exam' ? '<span><i style="background:var(--ok-weak)"></i>对</span><span><i style="background:var(--bad-weak)"></i>错</span>' : '<span><i style="background:var(--accent-weak)"></i>已作答</span>'}<span><i style="background:var(--flag);border-radius:50%;width:8px;height:8px;margin:0 8px 0 2px"></i>已标记</span></div></nav>
+    <main class="qmain"><div class="qcol">
+      <div class="qmeta">${meta}</div>
+      <div class="stem" id="stem">${q.stem.map((p) => `<p>${hlText(p, s.hl[qid])}</p>`).join('')}</div>
+      ${submitted ? '' : '<div class="tools"><button class="btn" data-q="hl">高亮所选文字</button>' + (s.hl[qid] && s.hl[qid].length ? '<button class="btn" data-q="hlclear">清除高亮</button>' : '') + '<span class="wide">点右侧横线可划掉选项 · 键盘 A–D 选择，← → 翻题</span></div>'}
+      <fieldset class="opts"><legend class="sr">选项</legend>${opts}</fieldset>
+      ${askConf ? `<div class="conf"><div class="label">把握（可不选，默认“确定”）</div><div class="seg">${CONF.map((n, i) => `<button type="button" data-q="conf" data-v="${i}" aria-pressed="${(s.cf[qid] || 0) === i && s.cf[qid] !== undefined}">${n}</button>`).join('')}</div></div>` : ''}
+      ${verdict}${submitted ? explHTML(q) + wbPanel(q) : ''}
+      <div class="qfoot"><button class="btn" data-q="prev" ${A.pos ? '' : 'disabled'}>上一题</button>${mainBtn}</div>
+    </div></main></div>
+    ${PAUSED ? `<div class="pause"><h2 style="margin:0">已暂停</h2><p class="muted" style="margin:0">计时已停止，题目已隐藏。</p><button class="btn primary big" data-q="resume">继续答题</button></div>` : ''}`;
+  bindQuiz();
+}
+function latestChoice(qid) { const a = ST.recs[qid]?.a; return a && a.length ? a[a.length - 1][2] : ''; }
+let LASTSEL = '';
+document.addEventListener('selectionchange', () => { const sel = window.getSelection(); const stem = $('#stem'); if (sel && stem && sel.rangeCount && stem.contains(sel.anchorNode)) { const t = sel.toString().trim(); if (t) LASTSEL = t; } });
+let noteT = null;
+function bindQuiz() {
+  const root = $('#app');
+  root.onclick = async (e) => {
+    const b = e.target.closest('button'); if (!b) return; const A = ACTIVE; if (!A) return; const s = A.s; const q = curQ(); const d = b.dataset;
+    if (d.opt) { if (A.view === 'review' || (s.mode !== 'exam' && s.sub[q.id]) || s.done && s.mode === 'exam') return; s.ans[q.id] = d.opt; if ((s.st[q.id] || '').includes(d.opt)) s.st[q.id] = s.st[q.id].replace(d.opt, ''); touchSession(s); renderActive(); return; }
+    if (d.strike) { const cur = s.st[q.id] || ''; s.st[q.id] = cur.includes(d.strike) ? cur.replace(d.strike, '') : cur + d.strike; if (s.ans[q.id] === d.strike && s.st[q.id].includes(d.strike)) delete s.ans[q.id]; touchSession(s); renderActive(); return; }
+    if (d.goto !== undefined) { moveTo(+d.goto); closeSheet(); return; }
+    switch (d.q) {
+      case 'next': moveTo(A.pos + 1); break;
+      case 'prev': moveTo(A.pos - 1); break;
+      case 'flag': if (s.fl[q.id]) delete s.fl[q.id]; else s.fl[q.id] = 1; setRecField(q.id, 'f', s.fl[q.id] ? 1 : 0); touchSession(s); renderActive(); break;
+      case 'conf': s.cf[q.id] = +d.v; touchSession(s); renderActive(); break;
+      case 'submit': if (!s.ans[q.id]) return; addAttempt(q.id, s.ans[q.id], s.cf[q.id] || 0, s.sec[q.id] || 0, s.kind === 'wb' ? 2 : 0); s.sub[q.id] = 1; touchSession(s); renderActive(); break;
+      case 'finish': if (!Object.keys(s.sub).length) { if (await confirmBox('还没有提交任何一题。退出这组题？', '退出')) exitActive(); return; } s.done = true; touchSession(s); A.view = 'result'; render(); break;
+      case 'submitExam': { const un = s.qids.filter((x) => !s.ans[x]).length; const fl = Object.keys(s.fl).length; if (await confirmBox(`${un ? `还有 ${un} 题未作答。` : '已全部作答。'}${fl ? `有 ${fl} 题标记过。` : ''}确定交卷？`, '交卷')) submitExam(); break; }
+      case 'pause': PAUSED = true; touchSession(s); renderActive(); break;
+      case 'resume': PAUSED = false; renderActive(); break;
+      case 'exit': exitActive(); break;
+      case 'close': if (s.virtual) { ACTIVE = null; VIEW = 'wrongbook'; render(); } else { A.view = 'result'; render(); } break;
+      case 'grid': openSheet(); break;
+      case 'hl': { const t = LASTSEL; if (!t) { toast('先在题干里选中文字'); return; } (s.hl[q.id] = s.hl[q.id] || []).push(...t.split(/\n+/).map((x) => x.trim()).filter(Boolean)); LASTSEL = ''; window.getSelection()?.removeAllRanges(); touchSession(s, false); renderActive(); break; }
+      case 'hlclear': delete s.hl[q.id]; touchSession(s, false); renderActive(); break;
+      case 'reason': { const v = +d.v; const r = ST.recs[q.id]; setRecField(q.id, 'r', r && r.r && r.r[0] === v ? 0 : v); renderActive(); break; }
+      case 'wbout': setRecField(q.id, 'w', 'out'); renderActive(); toast('已移出错题本'); break;
+      case 'wbin': setRecField(q.id, 'w', 'in'); renderActive(); toast('已加入错题本'); break;
+      case 'orig': { const box = $('#origbox'); if (!box.classList.contains('hide')) { box.classList.add('hide'); box.innerHTML = ''; b.textContent = '查看 PDF 原页'; return; } box.classList.remove('hide'); b.textContent = '收起原页'; renderPages(box, q.code, q.ePages); break; }
+    }
+  };
+  root.oninput = (e) => { if (e.target.id === 'note') { const v = e.target.value; const qid = curQ().id; clearTimeout(noteT); noteT = setTimeout(() => setRecField(qid, 'n', v), 700); } };
+  root.oncontextmenu = (e) => { const b = e.target.closest('[data-opt]'); if (!b || !ACTIVE || ACTIVE.view === 'review') return; e.preventDefault(); const s = ACTIVE.s; const q = curQ(); const L = b.dataset.opt; const cur = s.st[q.id] || ''; s.st[q.id] = cur.includes(L) ? cur.replace(L, '') : cur + L; touchSession(s); renderActive(); };
+}
+function moveTo(i) { const A = ACTIVE; if (i < 0 || i >= A.list.length) return; A.pos = i; LASTSEL = ''; if (A.view === 'quiz') A.s.cur = i; touchSession(A.s, false); renderActive(); window.scrollTo(0, 0); }
+function openSheet() {
+  const A = ACTIVE; const s = A.s; const w = document.createElement('div'); w.className = 'scrim'; w.id = 'sheet';
+  w.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="题号"><div class="row between"><h2>题号</h2><button class="btn" data-x="1">关闭</button></div><div class="qgrid">${$('.qgrid').innerHTML}</div>${s.mode === 'exam' && !s.done ? '<button class="btn" data-q2="pause">' + I.pause + '暂停计时</button>' : ''}</div>`;
+  document.body.appendChild(w);
+  w.onclick = (e) => { const b = e.target.closest('button'); if (e.target === w || (b && b.dataset.x)) { closeSheet(); return; } if (b && b.dataset.goto !== undefined) { closeSheet(); moveTo(+b.dataset.goto); } if (b && b.dataset.q2 === 'pause') { closeSheet(); PAUSED = true; renderActive(); } };
+}
+function closeSheet() { $('#sheet')?.remove(); }
+function submitExam(auto) {
+  const s = ACTIVE.s; if (s.done) return;
+  for (const qid of s.qids) addAttempt(qid, s.ans[qid] || '', s.cf[qid] || 0, s.sec[qid] || 0, 1);
+  s.done = true; touchSession(s); ACTIVE.view = 'result'; PAUSED = false; render(); if (auto) toast('时间到，已自动交卷');
+}
+
+// ================= result =================
+function sessionStats(s) {
+  const ids = s.mode === 'exam' ? s.qids : s.qids.filter((q) => s.sub[q]);
+  let sure = 0, doubt = 0, wrong = 0; const per = {}; const rs = {};
+  for (const qid of ids) {
+    const q = Q.get(qid); if (!q) continue; const ok = s.ans[qid] && s.ans[qid] === q.ans; const g = groupOf(q.code).n;
+    per[g] = per[g] || [0, 0]; per[g][1]++; if (ok) per[g][0]++;
+    if (ok && !(s.cf[qid] >= 1)) sure++; else if (ok) doubt++; else wrong++;
+    const r = ST.recs[qid]; if (!ok && r && r.r && r.r[0]) rs[r.r[0]] = (rs[r.r[0]] || 0) + 1;
+  }
+  const secs = s.mode === 'exam' ? s.el : ids.reduce((a, q) => a + (s.sec[q] || 0), 0);
+  return { ids, sure, doubt, wrong, per, rs, secs };
+}
+function renderResult() {
+  const s = ACTIVE.s; const R = sessionStats(s); const n = R.ids.length; const ok = R.sure + R.doubt;
+  const per = Object.entries(R.per).map(([g, [a, b]]) => `<div class="row between"><span>${g}</span><span class="muted">${a} / ${b} · ${pct(a, b)}</span></div>`).join('');
+  const rs = Object.entries(R.rs).map(([c, k]) => `<span class="tag">${reasonName(+c)} ${k}</span>`).join(' ');
+  const wd = R.ids.filter((q) => !(s.ans[q] && s.ans[q] === Q.get(q).ans) || s.cf[q] >= 1);
+  $('#app').innerHTML = shell(`<div class="cols"><section class="colmain"><div class="card stack" style="gap:16px">
+      <div class="row between"><h1>${esc(s.title)} · 成绩</h1><button class="btn" data-r="home">返回首页</button></div>
+      <div class="row" style="align-items:baseline;gap:14px"><span class="big-n" style="font-size:44px">${ok}<span class="muted" style="font-size:22px"> / ${n}</span></span><span style="font-size:22px;font-weight:700;color:var(--accent)">${pct(ok, n)}</span></div>
+      <div class="small muted">${s.mode === 'exam' ? '考试模式' : '练习模式'} · 用时 ${fmtSec(R.secs)}${s.lim ? ' / ' + fmtSec(s.lim) : ''} · 平均 ${n ? fmtSec(R.secs / n) : '—'} 每题</div>
+      <div class="stackbar" aria-hidden="true"><i style="width:${n ? (R.sure / n) * 100 : 0}%;background:var(--ok)"></i><i style="width:${n ? (R.doubt / n) * 100 : 0}%;background:var(--ok);opacity:.45"></i><i style="width:${n ? (R.wrong / n) * 100 : 0}%;background:var(--bad)"></i></div>
+      <div class="stack small" style="gap:4px"><div class="row between"><span>有把握且答对</span><b>${R.sure}</b></div><div class="row between"><span>犹豫或猜对（已进错题本）</span><b>${R.doubt}</b></div><div class="row between"><span>答错或未答</span><b>${R.wrong}</b></div></div>
+      <div class="row"><button class="btn" data-r="all">看全部解析</button><button class="btn primary" data-r="wd" ${wd.length ? '' : 'disabled'}>只看错题和犹豫猜对 ${wd.length}</button></div>
+    </div></section><aside class="colside"><div class="card stack"><h2>分科</h2>${per || '<div class="small muted">—</div>'}</div><div class="card stack"><h2>这组题的错因</h2>${rs || '<div class="small muted">在解析页标上错因后，这里会汇总。</div>'}</div>
+      <div class="card stack"><h2>导出</h2><button class="btn" data-r="xlsx">${I.dl}本组作答记录（Excel）</button><button class="btn" data-r="docx" ${wd.length ? '' : 'disabled'}>${I.dl}本组错题（Word）</button></div></aside></div>`);
+  document.body.classList.remove('in-quiz'); renderSync();
+  $('#app').onclick = (e) => {
+    const b = e.target.closest('[data-r]'); if (!b) return; const r = b.dataset.r;
+    if (r === 'home') { ACTIVE = null; VIEW = 'home'; location.hash = 'home'; render(); }
+    else if (r === 'all' || r === 'wd') { ACTIVE.list = r === 'all' ? R.ids : wd; ACTIVE.pos = 0; ACTIVE.view = 'review'; render(); window.scrollTo(0, 0); }
+    else if (r === 'xlsx') exportXlsx(R.ids, s.title);
+    else if (r === 'docx') exportDocx(wd, s.title + ' 错题');
+  };
+}
+function openWbItem(i) {
+  const items = wbItems(); const list = items.map((x) => x.q.id);
+  const s = { id: '_view', virtual: true, mode: 'practice', title: '错题本', qids: list, ans: {}, cf: {}, st: {}, fl: {}, sec: {}, sub: {}, hl: {}, el: 0, lim: 0 };
+  ACTIVE = { s, list, pos: i, view: 'review', back: 'wrongbook', keep: false }; render(); window.scrollTo(0, 0);
+}
+
+// ================= timer & keys =================
+let tickN = 0;
+setInterval(() => {
+  const A = ACTIVE; if (!A || A.view !== 'quiz' || PAUSED || document.hidden) return; const s = A.s; if (s.virtual || s.done) return;
+  const qid = A.list[A.pos]; s.el++; if (!(s.mode !== 'exam' && s.sub[qid])) s.sec[qid] = (s.sec[qid] || 0) + 1;
+  const tm = $('#tm'); if (tm) { tm.textContent = fmtSec(s.mode === 'exam' ? s.lim - s.el : s.el); if (s.mode === 'exam') tm.closest('.timer')?.classList.toggle('low', s.lim - s.el <= 300); }
+  tickN++; if (tickN % 5 === 0) { s.u = now(); Local.mark('s_' + s.id); } if (tickN % 30 === 0) Sync.mark('s_' + s.id);
+  if (s.mode === 'exam' && s.lim && s.el >= s.lim) submitExam(true);
+}, 1000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { saveActive(); Local.flush(); } });
+window.addEventListener('pagehide', () => { saveActive(); });
+document.addEventListener('keydown', (e) => {
+  if (!ACTIVE || ACTIVE.view === 'result' || PAUSED || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.closest('input,textarea,select')) return; if ($('.scrim')) return;
+  const k = e.key; const map = { a: 'A', b: 'B', c: 'C', d: 'D', 1: 'A', 2: 'B', 3: 'C', 4: 'D' };
+  if (map[k.toLowerCase()]) { const el = $(`[data-opt="${map[k.toLowerCase()]}"]`); if (el) { e.preventDefault(); el.click(); } }
+  else if (k === 'ArrowRight') { e.preventDefault(); moveTo(ACTIVE.pos + 1); }
+  else if (k === 'ArrowLeft') { e.preventDefault(); moveTo(ACTIVE.pos - 1); }
+  else if (k.toLowerCase() === 'f' && ACTIVE.view === 'quiz') $('[data-q="flag"]')?.click();
+  else if (k === 'Enter' && ACTIVE.view === 'quiz') { const sb = $('[data-q="submit"]'); if (sb && !sb.disabled) { e.preventDefault(); sb.click(); } }
+});
+
+// ================= exports =================
+let DLP = null;
+function downloadsNS() { if (!DLP) DLP = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null); return DLP; }
+async function saveFile(name, blob) {
+  const dl = await downloadsNS();
+  if (dl) { try { await dl.save({ filename: name, data: blob }); return true; } catch (e) { if (e && e.code === 'declined') return false; toast('导出失败：' + ((e && e.message) || '不可用')); return false; } }
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 8000); return true;
+}
+const stamp = () => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`; };
+async function exportBackup() {
+  const data = { app: 'mbe-qbank', v: 1, exported: now(), recs: ST.recs, sessions: ST.sessions, cfg: ST.cfg };
+  const ok = await saveFile(`MBE进度备份_${stamp()}.json`, new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  if (ok) { ST.cfg.lastBackup = now(); touchCfg(); if (!ACTIVE) render(); toast('备份已导出'); }
+}
+async function importBackup(file) {
+  try {
+    const d = JSON.parse(await file.text()); if (d.app !== 'mbe-qbank') throw new Error('不是本应用的备份文件');
+    let n = 0;
+    for (const [qid, r] of Object.entries(d.recs || {})) { const before = JSON.stringify(ST.recs[qid] || null); ST.recs[qid] = mergeRec(ST.recs[qid], r); if (JSON.stringify(ST.recs[qid]) !== before) { n++; touchRec(qid); } }
+    for (const [sid, s] of Object.entries(d.sessions || {})) { const cur = ST.sessions[sid]; if (!cur || (s.u || 0) > (cur.u || 0)) { ST.sessions[sid] = s; Local.mark('s_' + sid); Sync.mark('s_' + sid); } }
+    migrateHashes(); render(); toast(`已合并 ${n} 道题的记录`);
+  } catch (e) { toast('导入失败：' + e.message); }
+}
+let JSZIPP = null, DOCXP = null;
+function loadScript(src, globalName) { return new Promise((res, rej) => { if (window[globalName]) return res(window[globalName]); const s = document.createElement('script'); s.src = src; s.onload = () => res(window[globalName]); s.onerror = () => rej(new Error('脚本加载失败')); document.head.appendChild(s); }); }
+const loadJSZip = () => (JSZIPP = JSZIPP || loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip'));
+const loadDocx = () => (DOCXP = DOCXP || loadScript('https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.iife.js', 'docx'));
+const xmlEsc = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+async function buildXlsx(rows, widths) {
+  const JSZip = await loadJSZip(); const z = new JSZip();
+  const col = (i) => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+  const NS = 'http://schemas.openxmlformats.org/';
+  z.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="${NS}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`);
+  z.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}package/2006/relationships"><Relationship Id="rId1" Type="${NS}officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  z.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}spreadsheetml/2006/main" xmlns:r="${NS}officeDocument/2006/relationships"><sheets><sheet name="作答记录" sheetId="1" r:id="rId1"/></sheets></workbook>`);
+  z.file('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}package/2006/relationships"><Relationship Id="rId1" Type="${NS}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${NS}officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  z.file('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs></styleSheet>`);
+  const body = rows.map((r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => { const ref = col(ci) + (ri + 1); if (typeof v === 'number' && isFinite(v)) return `<c r="${ref}"${ri ? '' : ' s="1"'}><v>${v}</v></c>`; return `<c r="${ref}" t="inlineStr" s="${ri ? (String(v).length > 40 ? 2 : 0) : 1}"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`; }).join('')}</row>`).join('');
+  const cols = widths ? `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` : '';
+  z.file('xl/worksheets/sheet1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${cols}<sheetData>${body}</sheetData></worksheet>`);
+  return z.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+async function exportXlsx(ids, title) {
+  try {
+    const set = ids ? new Set(ids) : null; const rows = [['日期', '题号', '科目', '模式', '你的答案', '正确答案', '结果', '把握', '用时（秒）', '当前错因', '笔记', '在错题本']]; const items = [];
+    for (const [qid, r] of Object.entries(ST.recs)) { if (set && !set.has(qid)) continue; const q = Q.get(qid); const w = wbState(r); for (const x of r.a || []) items.push([x[1], qid, q ? groupOf(q.code).n : '', MODE_NAME[x[6]] || '', x[2] || '未答', q ? q.ans : '', x[3] ? '对' : '错', CONF[x[4] || 0], x[5], r.r && r.r[0] ? reasonName(r.r[0]) : '', r.n ? r.n[0] : '', w.inWB ? '是' : '否']); }
+    items.sort((a, b) => a[0] - b[0]); for (const it of items) { it[0] = fmtFull(it[0]); rows.push(it); }
+    if (rows.length === 1) { toast('还没有作答记录'); return; }
+    const blob = await buildXlsx(rows, [17, 11, 10, 9, 9, 9, 6, 7, 10, 13, 40, 9]);
+    if (await saveFile(`${title ? title.replace(/[\\/:*?"<>|·]/g, ' ').replace(/\s+/g, ' ').trim() : 'MBE作答记录'}_${stamp()}.xlsx`, blob)) toast('Excel 已导出');
+  } catch (e) { toast('导出失败：' + e.message); }
+}
+async function exportDocx(ids, title) {
+  if (!ids.length) { toast('没有可导出的题'); return; }
+  try {
+    toast('正在生成 Word…');
+    const D = await loadDocx(); const { Document, Packer, Paragraph, TextRun, HeadingLevel } = D;
+    const F = { ascii: 'Cambria', hAnsi: 'Cambria', eastAsia: 'Microsoft YaHei' };
+    const P = (text, o = {}) => new Paragraph({ spacing: { after: o.after ?? 100 }, indent: o.indent ? { left: o.indent } : undefined, children: [new TextRun({ text, font: F, size: o.size || 22, bold: o.bold, color: o.color, italics: o.italics })] });
+    const kids = [new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: title || 'MBE 错题本', font: F })] }), P(`导出时间 ${fmtFull(now())} · 共 ${ids.length} 题`, { color: '5B6472' })];
+    for (const qid of ids) {
+      const q = Q.get(qid); if (!q) continue; const r = ST.recs[qid] || {}; const w = wbState(r);
+      kids.push(new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 360, after: 120 }, children: [new TextRun({ text: `${q.id} · ${groupOf(q.code).n}`, font: F })] }));
+      const hist = (r.a || []).map((x) => `${fmtDate(x[1])} 选 ${x[2] || '未答'}（${x[3] ? '对' : '错'}${x[4] ? '，' + CONF[x[4]] : ''}）`).join('；');
+      kids.push(P(`正确答案 ${q.ans}${hist ? ' · 作答记录：' + hist : ''}`, { color: '1F4E8C', size: 20 }));
+      if (r.r && r.r[0]) kids.push(P('错因：' + reasonName(r.r[0]), { size: 20, bold: true }));
+      if (r.n && r.n[0]) kids.push(P('我的笔记：' + r.n[0], { size: 20, bold: true }));
+      if (w.inWB) kids.push(P('下次复习：' + fmtDay(w.due), { size: 20, color: '5B6472' }));
+      for (const p of q.stem) kids.push(P(p));
+      for (const [L, t] of Object.entries(q.options)) kids.push(P(`${L === q.ans ? '✓ ' : ''}${L}. ${t}`, { indent: 360, bold: L === q.ans }));
+      kids.push(new Paragraph({ heading: HeadingLevel.HEADING_3, spacing: { before: 200, after: 80 }, children: [new TextRun({ text: 'Explanation', font: F })] }));
+      for (const p of q.expl) kids.push(p.startsWith('\u0001') ? P(p.slice(1), { size: 18, color: '4A5462' }) : P(p, { size: 21 }));
+      if (q.obj) kids.push(P('Educational objective: ' + q.obj, { italics: true, size: 21 }));
+    }
+    const doc = new Document({ creator: 'MBE 刷题器', title: title || 'MBE 错题本', sections: [{ properties: { page: { margin: { top: 1000, bottom: 1000, left: 1100, right: 1100 } } }, children: kids }] });
+    const blob = await Packer.toBlob(doc);
+    if (await saveFile(`${(title || 'MBE错题本').replace(/[\\/:*?"<>|·（）]/g, ' ').replace(/\s+/g, ' ').trim()}_${stamp()}.docx`, blob)) toast('Word 已导出');
+  } catch (e) { toast('导出失败：' + e.message); }
+}
+
+// ================= init =================
+async function init() {
+  $('#app').innerHTML = '<div class="page"><div class="card empty"><div class="muted">正在加载…</div></div></div>';
+  await IDB.open();
+  try { await loadLocal(); } catch (e) { /* first run */ }
+  applyTheme();
+  try { await loadBanks(); } catch (e) { /* none */ }
+  window.addEventListener('hashchange', route);
+  route();
+  Sync.init();
+}
+init();
+
+</script>
+</body>
+</html>
