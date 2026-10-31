@@ -2,7 +2,7 @@
 'use strict';
 window.MBECloud = {
   client: null, user: null, ready: false, error: '', files: [], busy: false,
-  message: '', recovery: false, timer: null, generation: 0, pending: new Set(), libraryLoading: false, libraryDone: 0, libraryTotal: 0,
+  message: '', recovery: false, timer: null, generation: 0, pending: new Set(), libraryLoading: false, libraryDone: 0, libraryTotal: 0, libraryCacheChanged: false,
   configured() { const c = window.MBE_CLOUD_CONFIG; return !!(c && c.url && c.publishableKey); },
   validConfig(c) {
     const u = new URL(c.url);
@@ -272,7 +272,6 @@ window.MBECloud = {
     this.libraryLoading=true;this.libraryDone=0;
     try {
       await this.refreshFiles(true);this.libraryTotal=this.files.length;renderSync();
-      let changed=false;
       for(const f of this.files) {
         if(generation!==this.generation)return;
         if(!this.validManifest(f))throw new Error('云端题库路径不匹配');
@@ -291,17 +290,30 @@ window.MBECloud = {
           t.oncomplete=resolve;t.onabort=t.onerror=()=>reject(t.error||new Error('本机缓存空间不足'));
         });
         else {await IDB.put('banks',f.code,value);await IDB.put('kv','_library_'+f.code,meta);}
-        changed=true;this.libraryDone++;renderSync();
+        this.libraryCacheChanged=true;this.libraryDone++;renderSync();
       }
-      if(changed)await loadBanks();
       this.message=this.files.length ? '云端题库已自动准备好，可直接开始做题；查看原页时自动载入 PDF。' : '云端暂无题库，请先导入一次 PDF。';
     }catch(e){this.message='部分题库尚未准备好：'+e.message+'。已载入的题目可继续使用。';}
-    finally{this.libraryLoading=false;renderSync();this.redraw();}
+    finally{
+      try { if(this.libraryCacheChanged && generation===this.generation && !ACTIVE) {await loadBanks();this.libraryCacheChanged=false;} }
+      catch(e){this.message='题库缓存准备未完成：'+e.message;}
+      this.libraryLoading=false;renderSync();this.redraw();
+    }
   },
   async pdfBuffer(code) {
     let local=await IDB.get('pdfs',code);
     if(!this.user)return local||null;
-    if(!this.files.length)await this.refreshFiles(true);
+    if(!this.files.length) {
+      try { await this.refreshFiles(true); }
+      catch(e) {
+        if(local) {
+          const cached=await IDB.get('kv','_library_'+code);
+          if(!cached?.pdf_sha256 || await this.digest(local)===cached.pdf_sha256)return local;
+          throw new Error('此版本原页尚未缓存，联网后会自动载入');
+        }
+        throw e;
+      }
+    }
     const f=this.files.find(f=>f.code===code);
     if(!f?.pdf_path)return local||null;
     if(!this.validManifest(f))throw new Error('原 PDF 路径不匹配');
