@@ -299,8 +299,11 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 .section-picker>summary{cursor:pointer;min-height:46px;padding:10px 12px;overflow-wrap:anywhere}
 .section-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
 .section-checklist{max-height:min(420px,55dvh);overflow-y:auto;overscroll-behavior:contain;padding:0 12px 10px}
-.section-chapter{border-top:1px solid var(--line)}
-.section-chapter>summary{cursor:pointer;min-height:46px;padding:10px 0;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.section-chapter{border-top:1px solid var(--line);position:relative}
+.section-chapter>.section-choice{padding-right:72px}
+.section-chapter>details>summary{position:absolute;right:0;top:0;cursor:pointer;min-height:46px;min-width:64px;padding:10px 4px;font-size:14px;color:var(--accent)}
+.section-children{padding-left:12px;border-left:2px solid var(--line);margin-bottom:10px}
+.section-tip{padding:10px 12px;border-top:1px solid var(--line)}
 .section-choice{display:flex;align-items:center;gap:10px;min-height:46px;padding:9px 4px;line-height:1.55;cursor:pointer}
 .section-choice>input{flex:none;width:20px;height:20px;accent-color:var(--accent)}
 .section-choice>span:first-of-type{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
@@ -311,7 +314,7 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 <div id="app"></div>
 <script src="./cloud-config.js?v=20261101-supabase"></script>
 <script src="./cloud.js?v=20261101-v2"></script>
-<script src="./study.js?v=20261106-multi"></script>
+<script src="./study.js?v=20261106-direct"></script>
 <script>
 'use strict';
 // ===== MBE QBank PDF parser (shared by browser app and node tests) =====
@@ -1013,7 +1016,6 @@ function bindView() {
     const d = b.dataset;
     if (d.cloud) { await window.MBECloud.action(d.cloud, d.code); return; }
     if (d.act === 'allgroups') { ST.cfg.groups = groupsAll().filter(g => g.c.some(c => BANK[c])).map(g => g.k); ST.cfg.section = ''; ST.cfg.sections=[]; touchCfg(); render(); }
-    else if (b.hasAttribute('data-section-done')) { const el=$('#section-filter');el.open=false;el.querySelector('summary').focus({preventScroll:true}); }
     else if (b.hasAttribute('data-section-reset')) { window.MBESections.setSelection([]);render(); }
     else if (b.id === 'startfree') startFree();
     else if (d.grp) { const g=ST.cfg.groups,i=g.indexOf(d.grp);if(i>=0)g.splice(i,1);else g.push(d.grp);window.MBESections.setSelection(window.MBESections.selection().filter(id=>id==='unassigned'||g.includes(window.MBESections.nodes.get(id)?.group)));render(); }
