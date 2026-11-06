@@ -59,10 +59,45 @@ window.MBESections = {
     if(manual && this.nodes.has(manual))return {id:manual,kind:'manual'};
     return this.assignments.get(qid) || {id:'unassigned',kind:'unassigned'};
   },
-  matches(qid, filter=ST.cfg.section || '') {
-    if(!filter)return true;
+  filterOpen: false, filterExpanded: new Set(), filterScroll: 0, filterFocus: '',
+  selection(value) {
+    if(value===undefined){const saved=ST.cfg.sections;value=Array.isArray(saved) && (ST.cfg.section || '')===(saved[0] || '')?saved:(ST.cfg.section || '');}
+    const ids=[...new Set((Array.isArray(value)?value:[value]).filter(x=>typeof x==='string' && x))];
+    return ids.filter(id=>!ids.includes(this.nodes.get(id)?.parent));
+  },
+  setSelection(value) {
+    const ids=this.selection(value);ST.cfg.sections=ids;ST.cfg.section=ids[0] || '';touchCfg();
+  },
+  selectionTitle(value) {
+    const ids=this.selection(value);
+    return !ids.length?'全部章节':ids.length===1?(this.nodes.get(ids[0])?.title || '待分节'):'已选 '+ids.length+' 个章节';
+  },
+  matches(qid, filter=this.selection()) {
+    const ids=this.selection(filter);if(!ids.length)return true;
     const a=this.assignment(qid), n=this.nodes.get(a.id);
-    return filter===a.id || n?.parent===filter;
+    return ids.some(id=>id===a.id || n?.parent===id);
+  },
+  rememberPicker() {
+    const el=document.getElementById('section-filter');if(!el)return;
+    this.filterOpen=el.open;this.filterExpanded=new Set([...el.querySelectorAll('[data-section-expand][open]')].map(x=>x.dataset.sectionExpand));
+    this.filterScroll=el.querySelector('.section-checklist')?.scrollTop || 0;
+    this.filterFocus=document.activeElement?.dataset.sectionCheck || '';
+  },
+  bindPicker() {
+    const el=document.getElementById('section-filter');if(!el)return;
+    const ids=this.selection();
+    for(const cb of el.querySelectorAll('[data-section-parent]'))cb.indeterminate=!cb.checked && ids.some(id=>this.nodes.get(id)?.parent===cb.dataset.sectionCheck);
+    const list=el.querySelector('.section-checklist');if(list)list.scrollTop=this.filterScroll;
+    const focus=[...el.querySelectorAll('[data-section-check]')].find(x=>x.dataset.sectionCheck===this.filterFocus);
+    if(focus)focus.focus({preventScroll:true});this.filterFocus='';
+  },
+  multiPicker(codes) {
+    if(!this.data)return `<p class="small muted">${esc(this.error || '正在载入伴读目录…')}</p>`;
+    const ids=this.selection(),groups=new Set(codes.map(c=>groupOf(c).k)),counts=new Map();
+    for(const q of Q.values())if(codes.includes(q.code) && q.ans){const a=this.assignment(q.id),p=this.nodes.get(a.id)?.parent;counts.set(a.id,(counts.get(a.id)||0)+1);if(p)counts.set(p,(counts.get(p)||0)+1);}
+    const row=(n,parent=false)=>{const included=ids.includes(n.id)||ids.includes(n.parent);return `<label class="section-choice"><input type="checkbox" data-section-check="${esc(n.id)}" ${parent?'data-section-parent':''} ${included?'checked':''} ${ids.includes(n.parent)?'disabled':''}><span>${parent?'整章 · ':''}${esc(n.title)}</span><span class="small muted">${counts.get(n.id)||0} 题</span></label>`;};
+    const chapters=this.data.catalog.filter(n=>!n.parent && groups.has(n.group)).map(n=>`<details class="section-chapter" data-section-expand="${esc(n.id)}" ${this.filterExpanded.has(n.id)?'open':''}><summary>${esc((GROUPS.find(g=>g.k===n.group)?.n || n.group)+' · '+n.title)}</summary>${row(n,true)}${this.data.catalog.filter(c=>c.parent===n.id).map(c=>row(c)).join('')}</details>`).join('');
+    return `<details id="section-filter" class="section-picker" aria-labelledby="section-filter-label" ${this.filterOpen?'open':''}><summary>${esc(this.selectionTitle(ids))}</summary><div class="section-actions"><button type="button" class="btn ghost" data-section-reset>全部章节／清空选择</button><button type="button" class="btn primary" data-section-done>完成</button><span class="small muted">勾选整章包含其下所有小节</span></div><div class="section-checklist">${chapters}${row({id:'unassigned',title:'待分节'})}</div></details>`;
   },
   label(qid) {
     const a=this.assignment(qid), n=this.nodes.get(a.id);

@@ -293,13 +293,25 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 .keyboard-open .qfoot,.keyboard-open .bottomnav{visibility:hidden;pointer-events:none}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 
+
+#section-filter.section-picker{padding:0}
+.section-picker{border:1px solid var(--line2);border-radius:9px;background:var(--surface);min-width:0}
+.section-picker>summary{cursor:pointer;min-height:46px;padding:10px 12px;overflow-wrap:anywhere}
+.section-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+.section-checklist{max-height:min(420px,55dvh);overflow-y:auto;overscroll-behavior:contain;padding:0 12px 10px}
+.section-chapter{border-top:1px solid var(--line)}
+.section-chapter>summary{cursor:pointer;min-height:46px;padding:10px 0;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.section-choice{display:flex;align-items:center;gap:10px;min-height:46px;padding:9px 4px;line-height:1.55;cursor:pointer}
+.section-choice>input{flex:none;width:20px;height:20px;accent-color:var(--accent)}
+.section-choice>span:first-of-type{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.section-choice>span:last-child{flex:none;font-size:12px}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script src="./cloud-config.js?v=20261101-supabase"></script>
 <script src="./cloud.js?v=20261101-v2"></script>
-<script src="./study.js?v=20261101-v2"></script>
+<script src="./study.js?v=20261106-multi"></script>
 <script>
 'use strict';
 // ===== MBE QBank PDF parser (shared by browser app and node tests) =====
@@ -569,7 +581,7 @@ const IDB = {
 // ================= state =================
 const ST = {
   recs: {}, sessions: {},
-  cfg: { u: 0, exit: 2, askConf: true, theme: 'auto', readingSize: 20, lastBackup: 0, ncbeOpen: false, pace: 1.8, count: 33, mode: 'exam', pool: 'unseen', groups: ['CON'], section: '', shuffle: true, blockN: 0, backupSnooze: 0 },
+  cfg: { u: 0, exit: 2, askConf: true, theme: 'auto', readingSize: 20, lastBackup: 0, ncbeOpen: false, pace: 1.8, count: 33, mode: 'exam', pool: 'unseen', groups: ['CON'], section: '', sections: null, shuffle: true, blockN: 0, backupSnooze: 0 },
 };
 const CH = new Map(); // chunk -> Set(qid)
 const chunkOf = (qid) => { const i = qid.lastIndexOf('-'); return qid.slice(0, i) + '_' + Math.floor((parseInt(qid.slice(i + 1), 10) - 1) / 50); };
@@ -826,6 +838,7 @@ function route() {
   render();
 }
 function render() {
+  window.MBESections.rememberPicker();
   document.body.classList.toggle('in-quiz', !!ACTIVE);
   if (ACTIVE) { renderActive(); return; }
   const v = { home: viewHome, wrongbook: viewWrong, stats: viewStats, library: viewLibrary, more: viewMore }[VIEW] || viewHome;
@@ -856,7 +869,7 @@ function viewHome() {
   return `${bk}<div class="cols" style="margin-top:${bk ? 16 : 0}px"><section class="colmain"><div class="card stack" style="gap:22px">
     <h1>做题</h1>
     <div class="field"><div class="label">科目（可多选）</div><div class="chips">${chips}</div></div>
-    <div class="field"><label class="label" for="section-filter">伴读章节</label>${window.MBESections.picker(codes)}<div class="small muted">自动建议可在题目中调整</div><div><button class="btn ghost" data-act="allgroups">选择全部科目</button></div></div>
+    <div class="field"><div class="label" id="section-filter-label">伴读章节（可多选）</div>${window.MBESections.multiPicker(codes)}<div class="small muted">自动建议可在题目中调整</div><div><button class="btn ghost" data-act="allgroups">选择全部科目</button></div></div>
     <div class="row"><button class="btn primary big" id="startfree" ${poolIds(codes, 'all').length ? '' : 'disabled'}>开始自由做题</button><span class="small muted">不限题数 · 随时退出续做</span></div>
     <details class="home-detail" data-home-detail="practice" ${HOME_DETAILS.practice ? 'open' : ''}><summary>定量练习与考试</summary><div class="stack" style="gap:18px">
     <div class="field"><div class="label">题池</div><div class="seg">${pools}</div><div class="small muted">当前条件下可用 ${avail} 题</div></div>
@@ -992,15 +1005,18 @@ function viewMore() {
 
 // ================= view bindings =================
 function bindView() {
+  window.MBESections.bindPicker();
   document.querySelectorAll('[data-home-detail]').forEach(el => { el.ontoggle = () => { HOME_DETAILS[el.dataset.homeDetail] = el.open; }; });
   const app = $('#app');
   app.onclick = async (e) => {
     const b = e.target.closest('button,[data-act]'); if (!b) return;
     const d = b.dataset;
     if (d.cloud) { await window.MBECloud.action(d.cloud, d.code); return; }
-    if (d.act === 'allgroups') { ST.cfg.groups = groupsAll().filter(g => g.c.some(c => BANK[c])).map(g => g.k); ST.cfg.section = ''; touchCfg(); render(); }
+    if (d.act === 'allgroups') { ST.cfg.groups = groupsAll().filter(g => g.c.some(c => BANK[c])).map(g => g.k); ST.cfg.section = ''; ST.cfg.sections=[]; touchCfg(); render(); }
+    else if (b.hasAttribute('data-section-done')) { const el=$('#section-filter');el.open=false;el.querySelector('summary').focus({preventScroll:true}); }
+    else if (b.hasAttribute('data-section-reset')) { window.MBESections.setSelection([]);render(); }
     else if (b.id === 'startfree') startFree();
-    else if (d.grp) { ST.cfg.section = ''; const g = ST.cfg.groups; const i = g.indexOf(d.grp); if (i >= 0) g.splice(i, 1); else g.push(d.grp); touchCfg(); render(); }
+    else if (d.grp) { const g=ST.cfg.groups,i=g.indexOf(d.grp);if(i>=0)g.splice(i,1);else g.push(d.grp);window.MBESections.setSelection(window.MBESections.selection().filter(id=>id==='unassigned'||g.includes(window.MBESections.nodes.get(id)?.group)));render(); }
     else if (d.pool) { ST.cfg.pool = d.pool; touchCfg(); render(); }
     else if (d.mode) { ST.cfg.mode = d.mode; touchCfg(); render(); }
     else if (b.id === 'start') startBlock();
@@ -1027,7 +1043,7 @@ function bindView() {
   };
   app.onchange = (e) => {
     const t = e.target;
-    if (t.id === 'section-filter') { ST.cfg.section = t.value; touchCfg(); render(); }
+    if (t.dataset.sectionCheck) { const id=t.dataset.sectionCheck,ids=window.MBESections.selection();window.MBESections.setSelection(t.checked?ids.concat(id):ids.filter(x=>x!==id));render(); }
     else if (t.id === 'qcount') { ST.cfg.count = Math.max(1, Math.min(200, parseInt(t.value, 10) || 33)); touchCfg(); render(); }
     else if (t.id === 'qpace') { ST.cfg.pace = Math.max(0.5, Math.min(10, parseFloat(t.value) || 1.8)); touchCfg(); render(); }
     else if (t.id === 'shuf') { ST.cfg.shuffle = t.checked; touchCfg(); }
@@ -1079,16 +1095,16 @@ function startBlock() {
 }
 function startFree(scope) {
   const codes=scope?.codes || groupsAll().filter(g=>ST.cfg.groups.includes(g.k)).flatMap(g=>g.c).filter(c=>BANK[c]);
-  const section=scope?.section ?? ST.cfg.section ?? '';
+  const sections=window.MBESections.selection(scope?.sections ?? scope?.section ?? window.MBESections.selection());
   const ids=[];
-  for(const code of codes)for(const q of BANK[code]?.qs || [])if(q.ans && window.MBESections.matches(q.id,section))ids.push(q.id);
+  for(const code of codes)for(const q of BANK[code]?.qs || [])if(q.ans && window.MBESections.matches(q.id,sections))ids.push(q.id);
   if(!ids.length){toast('这个章节下暂时没有可用题目，请更换科目或章节');return;}
   shuffle(ids);
   // Unattempted questions first; no fixed 33/100/200-question cap.
   ids.sort((a,b)=>Number(!!ST.recs[a]?.a?.length)-Number(!!ST.recs[b]?.a?.length));
-  const title=section ? (window.MBESections.nodes.get(section)?.title || '待分节') : '全部章节';
+  const title=window.MBESections.selectionTitle(sections);
   const s=newSession({mode:'practice',kind:'free',qids:ids,title:'自由做题 · '+title});
-  s.freeScope={codes,section};touchSession(s);openSession(s);
+  s.freeScope={codes,sections:[...sections],section:sections[0]||''};touchSession(s);openSession(s);
 }
 function continueFree() {
   if(!ACTIVE || ACTIVE.s.kind!=='free')return;
