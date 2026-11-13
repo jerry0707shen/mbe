@@ -62,7 +62,7 @@ window.MBESections = {
   filterExpanded: new Set(), filterScroll: 0, filterFocus: '',
   selection(value) {
     if(value===undefined){const saved=ST.cfg.sections;value=Array.isArray(saved) && (ST.cfg.section || '')===(saved[0] || '')?saved:(ST.cfg.section || '');}
-    const ids=[...new Set((Array.isArray(value)?value:[value]).filter(x=>typeof x==='string' && x))];
+    const ids=[...new Set((Array.isArray(value)?value:[value]).filter(x=>typeof x==='string' && x).map(id=>this.nodes.get(id)?.parent || id))];
     return ids.filter(id=>!ids.includes(this.nodes.get(id)?.parent));
   },
   setSelection(value) {
@@ -95,12 +95,12 @@ window.MBESections = {
     if(!this.data)return `<p class="small muted">${esc(this.error || '正在载入伴读目录…')}</p>`;
     const ids=this.selection(),groups=new Set(codes.map(c=>groupOf(c).k)),counts=new Map();
     for(const q of Q.values())if(codes.includes(q.code) && q.ans){const a=this.assignment(q.id),p=this.nodes.get(a.id)?.parent;counts.set(a.id,(counts.get(a.id)||0)+1);if(p)counts.set(p,(counts.get(p)||0)+1);}
-    const row=(n,parent=false)=>{const included=ids.includes(n.id)||ids.includes(n.parent);return `<label class="section-choice"><input type="checkbox" data-section-check="${esc(n.id)}" ${parent?'data-section-parent':''} ${included?'checked':''} ${ids.includes(n.parent)?'disabled':''}><span>${parent?'整章 · ':''}${esc(n.title)}</span><span class="small muted">${counts.get(n.id)||0} 题</span></label>`;};
+    const row=(n)=>`<label class="section-choice"><input type="checkbox" data-section-check="${esc(n.id)}" ${ids.includes(n.id)?'checked':''}><span>${esc(n.title)}</span><span class="small muted">${counts.get(n.id)||0} 题</span></label>`;
     const chapters=this.data.catalog.filter(n=>!n.parent && groups.has(n.group)).map(n=>{
       const title=groups.size>1?((GROUPS.find(g=>g.k===n.group)?.n || n.group)+' · '+n.title):n.title;
-      return `<section class="section-chapter">${row({...n,title},true)}<details data-section-expand="${esc(n.id)}" ${this.filterExpanded.has(n.id)?'open':''}><summary>小节</summary><div class="section-children">${this.data.catalog.filter(c=>c.parent===n.id).map(c=>row(c)).join('')}</div></details></section>`;
+      return row({...n,title});
     }).join('');
-    return `<div id="section-filter" class="section-picker" role="group" aria-labelledby="section-filter-label"><div class="section-actions"><span class="small muted">${ids.length?'已选 '+ids.length+' 项':'全部章节'}</span><button type="button" class="btn ghost" data-section-reset>全部章节／清空选择</button></div><div class="section-checklist">${chapters}${row({id:'unassigned',title:'待分节'})}</div><div class="small muted section-tip">勾选即生效；选整章包含其下所有小节</div></div>`;
+    return `<div id="section-filter" class="section-picker" role="group" aria-labelledby="section-filter-label"><div class="section-actions"><span class="small muted">${ids.length?'已选 '+ids.length+' 章':'全部章节'}</span><button type="button" class="btn ghost" data-section-reset>全部章节</button></div><div class="section-checklist">${chapters}${row({id:'unassigned',title:'待分节'})}</div><div class="small muted section-tip">直接勾选整章，可多选</div></div>`;
   },
   label(qid) {
     const a=this.assignment(qid), n=this.nodes.get(a.id);

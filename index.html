@@ -308,13 +308,24 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 .section-choice>input{flex:none;width:20px;height:20px;accent-color:var(--accent)}
 .section-choice>span:first-of-type{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
 .section-choice>span:last-child{flex:none;font-size:12px}
+
+/* Private teaching uses the same reading scale and reflows on narrow screens. */
+.teaching{margin-top:28px;border-top:2px solid var(--accent-line);padding-top:24px;font-family:var(--serif);font-size:var(--reading-size);line-height:1.8;overflow-wrap:anywhere}
+.teaching h3{font-size:1.2em;line-height:1.45;margin:8px 0 18px}.teaching h4{font-family:var(--sans);font-size:.9em;margin:20px 0 8px}.teaching p{margin:0 0 14px}.teaching-kicker{font:600 12px/1.5 var(--sans);letter-spacing:.07em;color:var(--accent)}
+.knowledge-box{border:1px solid var(--accent-line);border-left:4px solid var(--accent);border-radius:8px;padding:18px;background:var(--accent-weak);margin-bottom:30px;font-family:var(--sans)}
+.knowledge-box dl{margin:12px 0 0;display:grid;gap:9px}.knowledge-box dl>div{display:grid;grid-template-columns:65px 1fr;gap:10px}.knowledge-box dt{font-size:12px;color:var(--muted);padding-top:3px}.knowledge-box dd{margin:0;font-size:14px}.concept-tag{display:inline-block;margin:0 7px 5px 0;padding:2px 8px;border:1px solid var(--accent-line);border-radius:4px;background:var(--surface)}
+.essay-model{margin-bottom:32px}.chinese-analysis{border-top:1px solid var(--line);padding-top:24px}.teaching-summary{margin-top:14px!important}.analysis-choice{padding:12px 16px;border:1px solid var(--line);border-radius:7px;margin-top:12px}.analysis-choice h4{margin:0 0 8px}.analysis-choice p{margin:0}.analysis-choice.correct{border-color:var(--accent-line);background:var(--ok-weak)}
+.takeaway{border-left:3px solid var(--accent);padding:12px 16px;background:var(--accent-weak);margin:24px 0}.takeaway b{font:600 12px var(--sans);color:var(--accent)}.takeaway p{margin:8px 0 0}.rule-flow{list-style:none;padding:0;display:grid;gap:8px;counter-reset:rule-step}.rule-flow li{padding:10px 14px;border:1px solid var(--line);border-radius:6px;counter-increment:rule-step}.rule-flow li:before{content:counter(rule-step) ' · ';color:var(--accent);font-family:var(--sans)}
+.teaching-footnote{font-family:var(--sans);line-height:1.6}.teaching-original{margin-top:18px;border-top:1px solid var(--line);padding-top:14px;font-family:var(--sans)}.teaching-original>summary{cursor:pointer;font-size:13px;color:var(--muted);min-height:44px;display:flex;align-items:center}.teaching-status{font-family:var(--sans);font-size:14px;padding:18px;background:var(--accent-weak);border-radius:8px}.teaching .etext{font-size:inherit}.teaching-original .expl{font-family:var(--serif)}
+@media(max-width:600px){.knowledge-box{padding:14px}.knowledge-box dl>div{grid-template-columns:56px 1fr;gap:8px}.knowledge-box dd{font-size:13px}.analysis-choice{padding:12px}.teaching{padding-top:20px}.teaching .etext{gap:12px}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script src="./cloud-config.js?v=20261101-supabase"></script>
 <script src="./cloud.js?v=20261101-v2"></script>
-<script src="./study.js?v=20261106-direct"></script>
+<script src="./study.js?v=20261113-chapters"></script>
+<script src="./teaching.js?v=20261113-1"></script>
 <script>
 'use strict';
 // ===== MBE QBank PDF parser (shared by browser app and node tests) =====
@@ -821,9 +832,9 @@ function dueIds() { const t = today(); const out = []; for (const [qid, r] of Ob
 
 // ================= shell & router =================
 const TABS = [['home', '做题', I.plus], ['wrongbook', '错题本', I.book], ['stats', '统计', I.chart], ['library', '题库', I.folder], ['more', '更多', I.more]];
-function readingSize() { return [18,20,22,24].includes(+ST.cfg.readingSize) ? +ST.cfg.readingSize : 20; }
-function updateReadingButtons() { for(const b of document.querySelectorAll('[data-size]'))b.setAttribute('aria-pressed',String(+b.dataset.size===readingSize()));const down=document.querySelector('[data-q=smaller]'),up=document.querySelector('[data-q=larger]');if(down)down.disabled=readingSize()===18;if(up)up.disabled=readingSize()===24; }
-function setReadingSize(n) { ST.cfg.readingSize=Math.max(18,Math.min(24,n));touchCfg();applyTheme(); }
+function readingSize() { return [14,16,18,20,22,24].includes(+ST.cfg.readingSize) ? +ST.cfg.readingSize : 20; }
+function updateReadingButtons() { for(const b of document.querySelectorAll('[data-size]'))b.setAttribute('aria-pressed',String(+b.dataset.size===readingSize()));const down=document.querySelector('[data-q=smaller]'),up=document.querySelector('[data-q=larger]');if(down)down.disabled=readingSize()===14;if(up)up.disabled=readingSize()===24; }
+function setReadingSize(n) { ST.cfg.readingSize=Math.max(14,Math.min(24,n));touchCfg();Local.flush();applyTheme(); }
 let VIEW = 'home'; let ACTIVE = null; let PAUSED = false;
 function applyTheme() { updateReadingButtons(); document.documentElement.style.setProperty('--reading-size', readingSize() + 'px'); const t = ST.cfg.theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
 function shell(inner) {
@@ -999,7 +1010,7 @@ function viewMore() {
   </section><aside class="colside">
     <div class="card stack"><h2>设置</h2>
       <div class="field"><div class="label">外观</div><div class="seg">${[['auto', '跟随系统'], ['light', '纸白'], ['dark', '夜读']].map(([k, n]) => `<button type="button" data-theme="${k}" aria-pressed="${c.theme === k}">${n}</button>`).join('')}</div></div>
-      <div class="field"><div class="label">阅读字号</div><div class="seg">${[[18,'紧凑'],[20,'标准'],[22,'大字'],[24,'特大']].map(([n,label])=>`<button type="button" data-size="${n}" aria-pressed="${readingSize()===n}">${label}</button>`).join('')}</div></div>
+      <div class="field"><div class="label">阅读字号</div><div class="seg">${[[14,'最小'],[16,'小字'],[18,'紧凑'],[20,'标准'],[22,'大字'],[24,'特大']].map(([n,label])=>`<button type="button" data-size="${n}" aria-pressed="${readingSize()===n}">${label}</button>`).join('')}</div></div>
       <div class="field"><div class="label">移出错题本的条件</div><div class="seg">${[2, 3].map((k) => `<button type="button" data-exit="${k}" aria-pressed="${c.exit === k}">按期连续做对 ${k} 次</button>`).join('')}</div></div>
     </div>
     <div class="card stack"><h2>在其他账号使用</h2><p class="small muted" style="margin:0">每个账号使用独立的本机空间和私有云数据。换设备登录同一账号，会自动载入进度和云端题库。不同账号之间需要自行导出、导入备份；未登录时的旧数据不会自动上传到账号。</p></div>
@@ -1149,7 +1160,7 @@ function hlText(txt, snips) {
   for (const s of snips || []) { const e = esc(s); if (e.length < 2) continue; const i = h.indexOf(e); if (i >= 0) h = h.slice(0, i) + '<mark>' + e + '</mark>' + h.slice(i + e.length); }
   return h;
 }
-function explHTML(q) {
+function originalExplHTML(q) {
   const parts = []; let tb = [];
   const flush = () => { if (tb.length) { parts.push(`<div class="tblk">${tb.map(esc).join('\n')}</div>`); tb = []; } };
   for (const p of q.expl) {
@@ -1166,6 +1177,7 @@ function explHTML(q) {
     ${q.obj ? `<div class="obj"><div class="k">Educational objective</div><div>${esc(q.obj)}</div></div>` : ''}
     ${q.refs && q.refs.length ? `<details class="refs"><summary>References</summary><ul>${q.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}</section>`;
 }
+function explHTML(q) { return window.MBETeaching.panel(q); }
 function wbPanel(q) {
   const r = ST.recs[q.id]; const w = wbState(r); const t = today(); const rc = r && r.r ? r.r[0] : 0;
   const hist = (r && r.a || []).slice(-8).map((x) => `<span class="tag ${x[3] ? '' : 'bad'}">${fmtDate(x[1])} ${x[2] || '未答'}${x[3] ? ' 对' : ' 错'}${x[4] ? '·' + CONF[x[4]] : ''}</span>`).join(' ');
@@ -1217,12 +1229,12 @@ function renderActive() {
       ${right}</div></header>
     <div class="qwrap"><nav class="qnav" aria-label="题号"><div class="qgrid">${nav}</div><div class="legend">${review || s.mode !== 'exam' ? '<span><i style="background:var(--ok-weak)"></i>对</span><span><i style="background:var(--bad-weak)"></i>错</span>' : '<span><i style="background:var(--accent-weak)"></i>已作答</span>'}<span><i style="background:var(--flag);border-radius:50%;width:8px;height:8px;margin:0 8px 0 2px"></i>已标记</span></div></nav>
     <main class="qmain"><div class="qcol">
-      <div class="qmeta">${meta}<div class="reading-tools" role="group" aria-label="阅读字号"><button class="btn" data-q="smaller" aria-label="缩小字号" ${readingSize()===18?'disabled':''}>A−</button><button class="btn" data-q="larger" aria-label="放大字号" ${readingSize()===24?'disabled':''}>A+</button></div><div class="syncpill quiz-sync" role="status" aria-live="polite"></div></div>
+      <div class="qmeta">${meta}<div class="reading-tools" role="group" aria-label="阅读字号"><button class="btn" data-q="smaller" aria-label="缩小字号" ${readingSize()===14?'disabled':''}>A−</button><button class="btn" data-q="larger" aria-label="放大字号" ${readingSize()===24?'disabled':''}>A+</button></div><div class="syncpill quiz-sync" role="status" aria-live="polite"></div></div>
       <div class="stem" id="stem">${q.stem.map((p) => `<p>${hlText(p, s.hl[qid])}</p>`).join('')}</div>
       ${submitted ? '' : '<div class="tools"><button class="btn" data-q="hl">高亮所选文字</button>' + (s.hl[qid] && s.hl[qid].length ? '<button class="btn" data-q="hlclear">清除高亮</button>' : '') + '<span class="wide">点右侧横线可划掉选项 · 键盘 A–D 选择，← → 翻题</span></div>'}
       <fieldset class="opts"><legend class="sr">选项</legend>${opts}</fieldset>
       ${askConf ? `<div class="conf"><div class="label">把握（可不选，默认“确定”）</div><div class="seg">${CONF.map((n, i) => `<button type="button" data-q="conf" data-v="${i}" aria-pressed="${(s.cf[qid] || 0) === i && s.cf[qid] !== undefined}">${n}</button>`).join('')}</div></div>` : ''}
-      ${verdict}${submitted ? explHTML(q) + wbPanel(q) : ''}${!exam ? window.MBESections.questionPanel(q) : ''}
+      ${verdict}${submitted ? explHTML(q) + wbPanel(q) : ''}${submitted ? window.MBESections.questionPanel(q) : ''}
       <div class="qfoot"><button class="btn" data-q="prev" ${A.pos ? '' : 'disabled'}>上一题</button>${mainBtn}</div>
     </div></main></div>
     ${PAUSED ? `<div class="pause"><h2 style="margin:0">已暂停</h2><p class="muted" style="margin:0">计时已停止，题目已隐藏。</p><button class="btn primary big" data-q="resume">继续答题</button></div>` : ''}`;
