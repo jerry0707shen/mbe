@@ -292,7 +292,7 @@ window.MBECloud = {
         else {await IDB.put('banks',f.code,value);await IDB.put('kv','_library_'+f.code,meta);}
         this.libraryCacheChanged=true;this.libraryDone++;renderSync();
       }
-      this.message=this.files.length ? '云端题库已自动准备好，可直接开始做题；查看原页时自动载入 PDF。' : '云端暂无题库，请先导入一次 PDF。';
+      this.message=this.files.length ? '云端题库已自动准备好，可直接开始做题；查看原页时自动载入 PDF。' : '题目已内置，做题记录将自动同步。';
     }catch(e){this.message='部分题库尚未准备好：'+e.message+'。已载入的题目可继续使用。';}
     finally{
       try { if(this.libraryCacheChanged && generation===this.generation && !ACTIVE) {await loadBanks();this.libraryCacheChanged=false;} }

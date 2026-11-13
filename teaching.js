@@ -17,7 +17,7 @@ window.MBETeaching={
     }
     const messages={signedout:'登录后可读取私有云端解析。',offline:'联网后可载入中文解析与英文示范。',loading:'正在准备英文示范与中文解析，首次可能需要约一分钟…',review:'本题的来源或答案需要核对，暂不展示未经核对的新解析。',reserved:'此题属于保留的 NCBE 练习题，继续保留原解析。',free_credit_limit:'免费生成额度已用尽或到期，已有解析仍可阅读。',cloud_bank_required:'请先将这份题库备份到云端，再载入新解析。',answer_first:'作答记录尚未同步，请稍后重试。',error:'新解析暂未载入，做题记录已保留。'};
     const key=state?.state||'loading';
-    return `<div class="teaching-status" role="status"><p>${messages[key]||messages.error}</p>${!['signedout','loading','reserved','review','free_credit_limit'].includes(key)?`<button class="btn" type="button" data-teaching-retry="${esc(q.id)}">重新载入解析</button>`:''}</div>`;
+    return `<div class="teaching-status" role="status"><p>${messages[key]||messages.error}</p>${state?.state==='review'&&state.reason?`<p>${this.safe(state.reason)}</p>`:''}${!['signedout','loading','reserved','review','free_credit_limit'].includes(key)?`<button class="btn" type="button" data-teaching-retry="${esc(q.id)}">重新载入解析</button>`:''}</div>`;
   },
   panel(q){
     const state=this.states.get(q.id);

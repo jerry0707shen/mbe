@@ -323,9 +323,10 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 <body>
 <div id="app"></div>
 <script src="./cloud-config.js?v=20261101-supabase"></script>
-<script src="./cloud.js?v=20261101-v2"></script>
+<script src="./cloud.js?v=20261113-builtin"></script>
 <script src="./study.js?v=20261113-chapters"></script>
-<script src="./teaching.js?v=20261113-1"></script>
+<script src="./teaching.js?v=20261113-2"></script>
+<script src="./builtin.js?v=20261113-1"></script>
 <script>
 'use strict';
 // ===== MBE QBank PDF parser (shared by browser app and node tests) =====
@@ -868,7 +869,7 @@ function answeredCount(s) { return (s.qids || []).filter(q => s.mode === 'exam' 
 function groupsAll() { return ST.cfg.ncbeOpen && BANK.NCBE ? GROUPS.concat([{ k: 'NCBE', n: 'NCBE 官方题', c: ['NCBE'] }]) : GROUPS; }
 function bankEmpty() { return !Object.keys(BANK).length; }
 function viewHome() {
-  if (bankEmpty()) return `<div class="card empty"><h1>${window.MBECloud.user ? '正在准备云端题库' : '登录后自动载入题库'}</h1><p class="muted">${esc(window.MBECloud.message || (window.MBECloud.user ? '已有云端备份将自动载入，无需重新上传或手动下载。' : '登录同一账号即可载入云端题库，也可导入 PDF 在本机使用。'))}</p><a class="btn primary big" href="#${window.MBECloud.user?'library':'more'}">${window.MBECloud.user?'查看题库状态':'登录账号'}</a></div>`;
+  if (bankEmpty()) return `<div class="card empty"><h1>准备内置题库</h1><p class="muted">题库会自动载入，稍后即可开始做题。</p><button type="button" class="btn primary big" data-builtin-retry>重新准备题库</button></div>`;
   const c = ST.cfg; let codes = groupsAll().filter((g) => c.groups.includes(g.k)).flatMap((g) => g.c).filter((x) => BANK[x]);
   if (!codes.length) { const g0 = groupsAll().find((g) => g.c.some((x) => BANK[x])); if (g0) { c.groups = [g0.k]; codes = g0.c.filter((x) => BANK[x]); } }
   const avail = poolIds(codes, c.pool).length; const total = Math.round(c.count * c.pace * 60);
@@ -916,21 +917,21 @@ function backupBanner() {
 // ================= library =================
 let IMPORTING = false; let PICKED = [];
 function viewLibrary() {
-  const rows = Object.values(BANK).sort((a, b) => Object.keys(CODES).indexOf(a.code) - Object.keys(CODES).indexOf(b.code)).map((b) => `<tr><td>${CODES[b.code]}</td><td class="small">${esc(b.file)}</td><td>${b.n}</td><td>${b.nAns}${b.nAns < b.n ? ` <span class="tag bad">${b.n - b.nAns} 题未识别答案</span>` : ''}</td><td class="small">${fmtFull(b.importedAt)}</td><td>${b.hasPdf ? '可查看' : '<span class="muted">未保存</span>'}</td><td><button class="btn danger" style="min-height:34px;padding:0 10px;font-size:13px" data-delbank="${b.code}">删除</button></td></tr>`).join('');
+  const rows = Object.values(BANK).sort((a, b) => Object.keys(CODES).indexOf(a.code) - Object.keys(CODES).indexOf(b.code)).map((b) => `<tr><td>${CODES[b.code]}</td><td class="small">${esc(b.file)}</td><td>${b.n}</td><td>${b.nAns}${b.nAns < b.n ? ` <span class="tag bad">${b.n - b.nAns} 题未识别答案</span>` : ''}</td><td class="small">${b.builtinVersion?'内置':fmtFull(b.importedAt)}</td><td>${b.hasPdf ? '可查看' : '<span class="muted">未保存</span>'}</td><td><button class="btn danger" style="min-height:34px;padding:0 10px;font-size:13px" data-delbank="${b.code}">删除</button></td></tr>`).join('');
   const total = Object.values(BANK).reduce((s, b) => s + b.n, 0);
   const picked = PICKED.map((p, i) => `<div class="imp"><span class="nm" title="${esc(p.file.name)}">${esc(p.file.name)}</span><label class="sr" for="pc${i}">科目</label><select id="pc${i}" data-pick="${i}"><option value="">选择科目</option>${Object.entries(CODES).map(([k, n]) => `<option value="${k}" ${p.code === k ? 'selected' : ''}>${n}</option>`).join('')}</select><span class="small muted" id="pp${i}"></span></div>`).join('');
   return `<div class="cols"><section class="colmain">
-    ${window.MBECloud.libraryPanel()}
-    <div class="card stack" style="gap:16px"><h1>导入题库 PDF</h1>
-      <p class="muted" style="margin:0">选择 UWorld 分科 PDF 和 NCBE 200 题 PDF（可一次多选）。解析在这台设备上完成。登录后可将题库和 PDF 备份到私有云，在其他设备登录后自动载入；未登录时只保存在本机。</p>
+    ${window.MBEBuiltin.panel()}${window.MBECloud.libraryPanel()}
+    <details class="card stack" style="gap:16px"><summary>添加其他题库（可选）</summary>
+      <p class="muted" style="margin:0">已有题目无需导入。这里可添加其他 PDF 题库，并备份到自己的私有云。</p>
       <div class="row"><label class="btn ghost" for="pdfin">选择 PDF 文件</label><input id="pdfin" class="sr" type="file" accept=".pdf,application/pdf" multiple></div>
       ${PICKED.length ? `<div class="importlist">${picked}</div><label class="check"><input type="checkbox" id="keeppdf" checked>保存原 PDF 到本机（用于“查看原页”）</label>${window.MBECloud.user ? '<label class="check"><input type="checkbox" id="cloudpdf" checked>同时备份题库和 PDF 到此账号的私有云</label>' : ''}<div class="row"><button class="btn primary big" id="doimport" ${IMPORTING ? 'disabled' : ''}>开始导入</button><span class="small muted" id="impstat"></span></div>` : ''}
-    </div>
-    <div class="card stack"><div class="row between"><h2>可用题库</h2><span class="small muted">共 ${total} 题</span></div>${rows ? `<div class="scrollx"><table class="t"><thead><tr><th>科目</th><th>文件</th><th>题数</th><th>答案已识别</th><th>导入时间</th><th>原 PDF</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="muted small">还没有导入任何题库。</div>'}</div>
+    </details>
+    <div class="card stack"><div class="row between"><h2>可用题库</h2><span class="small muted">共 ${total} 题</span></div>${rows ? `<div class="scrollx"><table class="t"><thead><tr><th>科目</th><th>文件</th><th>题数</th><th>答案已识别</th><th>准备时间</th><th>原 PDF</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="muted small">内置题库暂未载入，请重新准备。</div>'}</div>
   </section><aside class="colside">
     <section class="card stack"><h2>NCBE 官方题</h2><p class="small muted" style="margin:0">建议留作全真模考。打开后这 200 题也会出现在日常组卷的题池里。</p><label class="check"><input type="checkbox" id="ncbeopen" ${ST.cfg.ncbeOpen ? 'checked' : ''}>放进日常题池</label></section>
-    <section class="card stack"><h2>关于答案</h2><p class="small muted" style="margin:0">PDF 里没有直接标出答案。程序根据解析中逐个讨论的错误选项（Choice X）反推正确答案，未能唯一确定的题会标出来并从题池排除。</p></section>
-    <section class="card stack"><h2>手机上的注意</h2><p class="small muted" style="margin:0">浏览器可能清理本机存储。只有显示已同步的进度、列表中备份成功的题库和 PDF 才能从云端恢复；未登录或尚未上传的数据请另存备份。</p></section>
+    <section class="card stack"><h2>关于答案</h2><p class="small muted" style="margin:0">内置题目已包含答案和原解析。提交作答后，可以查看解析、记录错因和笔记。</p></section>
+    <section class="card stack"><h2>手机上的注意</h2><p class="small muted" style="margin:0">内置题库可自动重新载入。登录账号并确认进度已同步，换设备即可接着做题。</p></section>
   </aside></div>`;
 }
 
@@ -1146,7 +1147,7 @@ function resume(id) {
 }
 function openSession(s) {
   const miss = s.qids.filter((q) => !Q.has(q)).length;
-  if (miss) { toast(window.MBECloud.user ? `这组题还有 ${miss} 题尚未载入，请稍后重试或到“题库”重新同步` : `这组题有 ${miss} 题的题库未导入，请先登录云账号或导入 PDF`); return; }
+  if (miss) { toast(window.MBECloud.user ? `这组题还有 ${miss} 题尚未载入，请稍后重试或到“题库”重新同步` : `这组题有 ${miss} 题的题库尚未载入，请到“题库”重新准备`); return; }
   ACTIVE = { s, list: s.qids, pos: Math.min(s.cur || 0, s.qids.length - 1), view: 'quiz', keep: false };
   PAUSED = false; LASTSEL = ''; if (location.hash !== '#home') { ACTIVE.keep = true; location.hash = 'home'; } render(); window.scrollTo(0, 0);
 }
@@ -1446,7 +1447,7 @@ async function init() {
   await Promise.all([window.MBECloud.prepare(), window.MBESections.prepare()]);
   const durable = await IDB.open();
   if (!durable) setTimeout(() => toast('此浏览器无法持久保存，本机数据离开后可能丢失；请使用正常浏览模式并导出备份'), 500);
-  try { await loadLocal();applyTheme();await loadBanks(); } catch (e) {
+  try { await loadLocal();applyTheme();$('#app').innerHTML='<div class="page"><div class="card empty"><h1>准备内置题库</h1><p class="muted" data-builtin-progress>正在准备内置题库…</p></div></div>';await window.MBEBuiltin.ensure();await loadBanks(); } catch (e) {
     applyTheme();$('#app').innerHTML='<div class="page"><section class="card stack"><h1>记录暂时无法读取</h1><p>请重新载入，恢复本机记录后再继续做题。</p><div><button class="btn primary" onclick="location.reload()">重新载入</button></div></section></div>';return;
   }
   window.addEventListener('hashchange', route);
