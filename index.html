@@ -309,7 +309,7 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 .section-choice>span:first-of-type{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
 .section-choice>span:last-child{flex:none;font-size:12px}
 
-/* Wide screens use all available space; progress stays expanded above practice. */
+/* Responsive reading width; progress stays expanded above practice. */
 .home-layout{display:grid;gap:20px}
 .home-progress{padding:24px 28px}
 .home-progress-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;margin-bottom:18px}
@@ -327,6 +327,9 @@ input,select,textarea{font-size:16px!important;max-width:100%}
  .topnav .in,.page,.qbar .in,.qwrap{width:100%;max-width:none}
  .qcol{width:100%;max-width:none;margin:0}
 }
+@media(min-width:1280px){
+ .topnav .in,.page,.qbar .in,.qwrap{width:80%}
+}
 @media(max-width:760px){
  .home-progress{padding:20px}
  .home-progress-heading{margin-bottom:14px}
@@ -335,6 +338,18 @@ input,select,textarea{font-size:16px!important;max-width:100%}
  .subject-progress h3{font-size:14px}
  .subject-progress-count strong{font-size:24px}
 }
+
+.wrong-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--line);border-radius:12px;background:var(--surface);-webkit-overflow-scrolling:touch}
+.wrong-table{width:100%;min-width:1190px;border-collapse:separate;border-spacing:0;font:13px/1.6 var(--sans);text-align:left}
+.wrong-table th,.wrong-table td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.wrong-table th{background:var(--accent-weak);font-size:13px;white-space:nowrap;border-bottom-color:var(--accent-line)}
+.wrong-table tbody tr:last-child td{border-bottom:0}.wrong-table tbody tr:hover{background:var(--bg)}
+.wrong-table th[aria-sort=ascending],.wrong-table th[aria-sort=descending]{background:var(--accent-line)}
+.wrong-sort{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;border:0;background:none;padding:0;font:600 13px/1.5 var(--sans);color:var(--ink);cursor:pointer;text-align:left}
+.wrong-sort span{color:var(--accent)}.wrong-open{border:0;background:none;padding:0;min-height:36px;color:var(--accent);font:600 13px/1.5 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+.wrong-table td:nth-child(1){min-width:83px}.wrong-table td:nth-child(3),.wrong-table td:nth-child(4){white-space:nowrap}.wrong-count{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.wrong-preview{min-width:260px;max-width:420px}.wrong-note{min-width:160px;max-width:260px}.wrong-preview>div,.wrong-note>div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+@media(max-width:760px){.wrong-table th,.wrong-table td{padding:10px 12px}.wrong-sort,.wrong-open{min-height:44px}}
 
 /* Private teaching uses the same reading scale and reflows on narrow screens. */
 .teaching{margin-top:28px;border-top:2px solid var(--accent-line);padding-top:24px;font-family:var(--serif);font-size:var(--reading-size);line-height:1.8;overflow-wrap:anywhere}
@@ -572,7 +587,6 @@ const REASONS = [[1, '规则不知道'], [2, '漏了关键事实'], [3, '看错�
 const reasonName = (c) => (REASONS.find((r) => r[0] === c) || [0, ''])[1];
 const CONF = ['确定', '犹豫', '猜的'];
 const MODE_NAME = ['练习', '考试', '错题复习'];
-const INTERVALS = [1, 3, 7, 14];
 function detectCode(name) {
   const n = name || '';
   if (/ncbe|综合/i.test(n)) return 'NCBE';
@@ -814,24 +828,16 @@ async function renderPages(box, code, pages) {
 
 // ================= derived =================
 function wbState(r) {
-  const res = { inWB: false, due: null, streak: 0, wrongN: 0, guessN: 0, lastTs: 0 };
-  if (!r) return res;
-  const ev = (r.a || []).map((x) => ({ ts: x[1], ok: !!x[3], cf: x[4] || 0 }));
-  if (r.w) ev.push({ ts: r.w[1], man: r.w[0] }); ev.sort((a, b) => a.ts - b.ts);
-  const exit = ST.cfg.exit || 2; let step = 0;
-  for (const e of ev) {
-    if (e.man === 'in') { res.inWB = true; res.streak = 0; step = 0; res.due = dayNum(e.ts); continue; }
-    if (e.man === 'out') { res.inWB = false; res.due = null; continue; }
-    res.lastTs = e.ts;
-    const bad = !e.ok || e.cf >= 1;
-    if (!e.ok) res.wrongN++; else if (e.cf >= 1) res.guessN++;
-    if (bad) { res.inWB = true; res.streak = 0; step = 0; res.due = dayNum(e.ts) + INTERVALS[0]; }
-    else if (res.inWB && dayNum(e.ts) >= res.due) {
-      res.streak++;
-      if (res.streak >= exit) { res.inWB = false; res.due = null; }
-      else { step = Math.min(step + 1, INTERVALS.length - 1); res.due = dayNum(e.ts) + INTERVALS[step]; }
-    }
+  const res = { inWB: false, wrongN: 0, guessN: 0, lastTs: 0, lastWrongTs: 0, firstTs: 0, latestOk: null };
+  let undated = false;
+  for (const x of r?.a || []) {
+    const rawTs = Number(x[1]), ts = Number.isFinite(rawTs) && rawTs > 0 && rawTs <= 8640000000000000 ? rawTs : 0; if (ts >= res.lastTs) { res.lastTs = ts; res.latestOk = !!x[3]; }
+    if (ts) res.firstTs = res.firstTs ? Math.min(res.firstTs,ts) : ts; else undated = true;
+    if (!x[3]) { res.wrongN++; res.lastWrongTs = Math.max(res.lastWrongTs, ts); }
+    else if (x[4] >= 1) res.guessN++;
   }
+  if (undated) res.firstTs = 0;
+  res.inWB = res.wrongN > 0;
   return res;
 }
 function addAttempt(qid, ch, cf, sec, md) {
@@ -856,7 +862,7 @@ function poolIds(codes, pool) {
   }
   return out;
 }
-function dueIds() { const t = today(); const out = []; for (const [qid, r] of Object.entries(ST.recs)) { if (!Q.has(qid)) continue; const w = wbState(r); if (w.inWB && w.due !== null && w.due <= t) out.push(qid); } return out; }
+
 
 // ================= shell & router =================
 const TABS = [['home', '做题', I.plus], ['wrongbook', '错题本', I.book], ['stats', '统计', I.chart], ['library', '题库', I.folder], ['more', '更多', I.more]];
@@ -904,7 +910,7 @@ function viewHome() {
   const pools = [['unseen', '未做过'], ['wrong', '做错过'], ['flag', '已标记'], ['wb', '错题本中'], ['all', '全部']].map(([k, n]) => `<button type="button" data-pool="${k}" aria-pressed="${c.pool === k}">${n}</button>`).join('');
   const active = Object.values(ST.sessions).filter((s) => !s.done && answeredCount(s) > 0).sort((a, b) => b.u - a.u).slice(0, 3);
   const cont = active.length ? active.map((s) => { const ans = answeredCount(s); return `<div class="row between"><div><div>${esc(s.title)}</div><div class="small muted">${s.kind === 'free' ? '自由做题' : s.mode === 'exam' ? '考试模式' : '练习模式'} · 本轮已做 ${ans} / ${s.qids.length}${s.mode === 'exam' && s.lim ? ' · 剩余 ' + fmtSec(s.lim - s.el) : ''}</div></div><button class="btn ghost" data-resume="${s.id}">${s.kind !== 'free' && s.mode !== 'exam' && s.qids.every((q) => s.sub[q]) ? '看成绩' : '继续'}</button></div>`; }).join('') : '<div class="small muted">没有未完成的题组</div>';
-  const due = dueIds().length;
+  const wrongN = wbItems({all:true}).length;
   const prog = GROUPS.filter((g) => g.c.some((x) => BANK[x])).map((g) => {
     let n = 0, d = 0, ok = 0;
     for (const code of g.c) for (const q of BANK[code]?.qs || []) {
@@ -935,7 +941,7 @@ function viewHome() {
   </div></section>
   <aside class="colside">
     ${active.length ? `<section class="card stack"><h2>继续上次</h2>${cont}</section>` : ''}
-    ${due ? `<section class="card stack"><h2>今天要复习</h2><div class="row" style="align-items:baseline;gap:8px"><span class="big-n" style="color:var(--bad)">${due}</span><span class="small muted">道错题到期（含犹豫或猜对的）</span></div><div class="small muted">间隔 1 / 3 / 7 天推回，连续做对 ${ST.cfg.exit} 次移出</div><div><button class="btn ghost" id="dueGo" ${due ? '' : 'disabled'}>开始复习</button></div></section>` : ''}
+    ${wrongN ? `<section class="card stack"><h2>错题本</h2><div class="row" style="align-items:baseline;gap:8px"><span class="big-n" style="color:var(--bad)">${wrongN}</span><span class="small muted">道历史错题</span></div><div class="small muted">按最近做错时间，从新到旧排列</div><div><a class="btn ghost" href="#wrongbook">查看全部错题</a></div></section>` : ''}
     <details class="card home-detail" data-home-detail="mock" ${HOME_DETAILS.mock ? 'open' : ''}><summary>NCBE 全真模考</summary><div class="stack"><div class="small muted">官方 200 题默认不进日常题池</div>${mock}</div></details>
   </aside></div></div>`;
 }
@@ -969,43 +975,50 @@ function viewLibrary() {
 }
 
 // ================= wrong book =================
-let WBF = { grp: '', reason: '', status: 'due', guess: false, limit: 60 };
-function wbItems() {
-  const t = today(); const out = [];
-  for (const [qid, r] of Object.entries(ST.recs)) {
-    const q = Q.get(qid); if (!q) continue; const w = wbState(r);
-    if (!w.wrongN && !w.guessN && !(r.w && r.w[0] === 'in')) continue;
-    if (WBF.status === 'due' && !(w.inWB && w.due <= t)) continue;
-    if (WBF.status === 'in' && !w.inWB) continue;
-    if (WBF.status === 'out' && w.inWB) continue;
-    if (WBF.grp && groupOf(q.code).k !== WBF.grp) continue;
-    if (WBF.reason && (!r.r || String(r.r[0]) !== WBF.reason)) continue;
-    if (WBF.guess && !(w.guessN && !w.wrongN)) continue;
-    out.push({ q, r, w });
+const WB_VIEW = { sort: 'lastWrongTs', dir: 'desc', subject: '', scrollLeft: 0 };
+const WB_SORT_LABELS = {subject:'科目',id:'题号',lastWrongTs:'最近做错时间',firstTs:'首次做题时间',wrongN:'做错次数',latestOk:'最近结果'};
+function wbItems({all=false} = {}) {
+  const out = [];
+  for (const [qid,r] of Object.entries(ST.recs)) {
+    const q = Q.get(qid); if (!q) continue;
+    const w = wbState(r); if (!w.wrongN) continue;
+    if (!all && WB_VIEW.subject && groupOf(q.code).k !== WB_VIEW.subject) continue;
+    out.push({q,r,w});
   }
-  out.sort((a, b) => (a.w.due ?? 1e9) - (b.w.due ?? 1e9) || b.w.lastTs - a.w.lastTs);
+  const ranks = new Map(GROUPS.map((g,i)=>[g.k,i])), key=WB_VIEW.sort, sign=WB_VIEW.dir==='asc'?1:-1;
+  out.sort((a,b)=>{
+    let d=0;
+    if(key==='subject') d=(ranks.get(groupOf(a.q.code).k)??99)-(ranks.get(groupOf(b.q.code).k)??99);
+    else if(key==='id') d=a.q.id.localeCompare(b.q.id,undefined,{numeric:true});
+    else {
+      const av=a.w[key],bv=b.w[key];
+      if(['lastWrongTs','firstTs'].includes(key) && (!av || !bv)) {
+        if(!av && bv)return 1;if(av && !bv)return -1;
+      }
+      d=Number(av)-Number(bv);
+    }
+    return d*sign || b.w.lastWrongTs-a.w.lastWrongTs || a.q.id.localeCompare(b.q.id,undefined,{numeric:true});
+  });
   return out;
 }
+function wrongTime(ts) { return ts ? `<time datetime="${new Date(ts).toISOString()}">${fmtFull(ts)}</time>` : '时间未记录'; }
+function wrongSortHead(key) {
+  const active=WB_VIEW.sort===key,order=active?(WB_VIEW.dir==='asc'?'ascending':'descending'):'none';
+  return `<th scope="col" aria-sort="${order}"><button type="button" class="wrong-sort" data-wb-sort="${key}">${WB_SORT_LABELS[key]}<span aria-hidden="true">${active?(WB_VIEW.dir==='asc'?'↑':'↓'):'↕'}</span></button></th>`;
+}
 function viewWrong() {
-  const t = today(); let inN = 0, dueN = 0;
-  for (const r of Object.values(ST.recs)) { const w = wbState(r); if (w.inWB) { inN++; if (w.due <= t) dueN++; } }
-  const items = wbItems(); const shown = items.slice(0, WBF.limit);
-  const grpOpts = GROUPS.concat([{ k: 'NCBE', n: 'NCBE 官方题' }]).map((g) => `<option value="${g.k}" ${WBF.grp === g.k ? 'selected' : ''}>${g.n}</option>`).join('');
-  const rsOpts = REASONS.map(([c, n]) => `<option value="${c}" ${WBF.reason === String(c) ? 'selected' : ''}>${n}</option>`).join('');
-  const st = [['due', '今天到期'], ['in', '在错题本'], ['out', '已移出']].map(([k, n]) => `<button type="button" data-wbs="${k}" aria-pressed="${WBF.status === k}">${n}</button>`).join('');
-  const list = shown.map(({ q, r, w }, i) => `<li><button class="item" data-wbopen="${i}"><span class="row" style="gap:8px;font-size:12px"><span class="tag acc">${groupOf(q.code).n}</span><span class="muted">${q.id}</span><span style="flex-grow:1"></span><span class="muted">${w.inWB ? (w.due <= t ? '今天复习' : fmtDay(w.due)) : '已移出'}</span></span><span class="st">${esc(q.stem[0] || '')}</span><span class="row" style="gap:6px;font-size:12px">${r.r ? `<span class="tag">${reasonName(r.r[0])}</span>` : '<span class="tag">未标错因</span>'}<span class="tag bad">${w.wrongN ? '错 ' + w.wrongN + ' 次' : '猜对 ' + w.guessN + ' 次'}</span>${r.n && r.n[0] ? '<span class="tag">有笔记</span>' : ''}</span></button></li>`).join('');
-  return `<div class="cols"><section class="colmain">
-    <div class="card stack" style="gap:14px"><div class="row between"><h1>错题本</h1><div class="row"><button class="btn" data-act="xdocx">${I.dl}导出 Word</button><button class="btn" data-act="xlsx">${I.dl}导出 Excel</button></div></div>
-      <div class="row small muted" style="gap:18px"><span><b class="big-n" style="font-size:22px;color:var(--ink)">${inN}</b> 题在本</span><span><b class="big-n" style="font-size:22px;color:var(--bad)">${dueN}</b> 今天到期</span></div>
-      <div><button class="btn primary" id="dueGo" ${dueN ? '' : 'disabled'}>复习今天到期的 ${dueN} 题</button></div>
-      <div class="row"><div class="seg">${st}</div>
-        <label class="sr" for="wbg">科目</label><select id="wbg" class="num" style="width:auto"><option value="">全部科目</option>${grpOpts}</select>
-        <label class="sr" for="wbr">错因</label><select id="wbr" class="num" style="width:auto"><option value="">全部错因</option>${rsOpts}</select>
-        <label class="check"><input type="checkbox" id="wbguess" ${WBF.guess ? 'checked' : ''}>只看猜对的</label></div>
-      <div class="small muted">当前筛选 ${items.length} 题。Word 导出按当前筛选生成。</div>
-    </div>
-    ${items.length ? `<ul class="list">${list}</ul>${items.length > WBF.limit ? '<div><button class="btn" data-act="more">显示更多</button></div>' : ''}` : '<div class="card empty"><p class="muted" style="margin:0">这个筛选下没有题。答错或犹豫、猜对的题会自动进入错题本。</p></div>'}
-  </section></div>`;
+  const items=wbItems(),all=wbItems({all:true}),counts=new Map();
+  for(const x of all){const group=groupOf(x.q.code).k;counts.set(group,(counts.get(group)||0)+1);}
+  const options=GROUPS.concat([{k:'NCBE',n:'NCBE 官方题'}]).filter(g=>counts.has(g.k)).map(g=>`<option value="${g.k}" ${WB_VIEW.subject===g.k?'selected':''}>${g.n}（${counts.get(g.k)}）</option>`).join('');
+  const rows=items.map(({q,r,w},i)=>`<tr data-wb-row="${esc(q.id)}"><td>${groupOf(q.code).n}</td><td><button type="button" class="wrong-open" data-wbopen="${i}" data-wb-id="${esc(q.id)}" aria-label="查看 ${esc(q.id)}">${esc(q.id)}</button></td><td>${wrongTime(w.lastWrongTs)}</td><td>${wrongTime(w.firstTs)}</td><td class="wrong-count">${w.wrongN}</td><td><span class="tag ${w.latestOk?'':'bad'}">${w.latestOk?'已做对':'仍做错'}</span></td><td class="wrong-preview"><div>${esc(q.stem.join(' '))}</div></td><td class="wrong-note"><div>${esc(r.n?.[0] || '')}</div>${r.r?.[0]?`<span class="small muted">${reasonName(r.r[0])}</span>`:''}</td></tr>`).join('');
+  return `<section class="stack" style="gap:16px"><div class="card stack" style="gap:14px"><div class="row between"><h1>错题本</h1><div class="row"><button class="btn" data-act="xdocx">${I.dl}导出 Word</button><button class="btn" data-act="xlsx">${I.dl}导出 Excel</button></div></div><div class="row between"><div class="row"><label for="wb-subject" class="small muted">科目</label><select id="wb-subject" class="num" style="width:auto;min-height:44px"><option value="">全部科目</option>${options}</select><button type="button" class="btn ghost" data-wb-reset>重置</button></div><span class="small muted">共 ${all.length} 道错题${WB_VIEW.subject?' · 当前显示 '+items.length+' 道':''}</span></div><p class="small muted" style="margin:0">点击表头切换升降序，可左右滑动查看。点击题号查看题目与解析。</p></div>${items.length?`<div class="wrong-table-wrap" role="region" aria-label="错题明细" tabindex="0"><table class="wrong-table"><thead><tr>${wrongSortHead('subject')}${wrongSortHead('id')}${wrongSortHead('lastWrongTs')}${wrongSortHead('firstTs')}${wrongSortHead('wrongN')}${wrongSortHead('latestOk')}<th scope="col">题目摘要</th><th scope="col">笔记与错因</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="card empty"><p class="muted" style="margin:0">${all.length?'该科目暂时没有错题。':'还没有错题。答错的题会自动列在这里。'}</p></div>`}</section>`;
+}
+async function exportWrongXlsx() {
+  const items=wbItems();if(!items.length){toast('没有可导出的错题');return;}
+  const rows=[['科目','题号','最近做错时间','首次做题时间','做错次数','最近结果','题目摘要','笔记','错因']];
+  for(const {q,r,w} of items)rows.push([groupOf(q.code).n,q.id,w.lastWrongTs?fmtFull(w.lastWrongTs):'',w.firstTs?fmtFull(w.firstTs):'',w.wrongN,w.latestOk?'已做对':'仍做错',q.stem.join(' '),r.n?.[0] || '',reasonName(r.r?.[0])]);
+  try {const blob=await buildXlsx(rows,[13,13,21,21,12,13,80,45,20]);if(await saveFile(`错题本_${stamp()}.xlsx`,blob))toast('Excel 已导出');}
+  catch(e){toast('导出失败：'+e.message);}
 }
 
 // ================= stats =================
@@ -1045,7 +1058,6 @@ function viewMore() {
     <div class="card stack"><h2>设置</h2>
       <div class="field"><div class="label">外观</div><div class="seg">${[['auto', '跟随系统'], ['light', '纸白'], ['dark', '夜读']].map(([k, n]) => `<button type="button" data-theme="${k}" aria-pressed="${c.theme === k}">${n}</button>`).join('')}</div></div>
       <div class="field"><div class="label">阅读字号</div><div class="seg">${[[14,'最小'],[16,'小字'],[18,'紧凑'],[20,'标准'],[22,'大字'],[24,'特大']].map(([n,label])=>`<button type="button" data-size="${n}" aria-pressed="${readingSize()===n}">${label}</button>`).join('')}</div></div>
-      <div class="field"><div class="label">移出错题本的条件</div><div class="seg">${[2, 3].map((k) => `<button type="button" data-exit="${k}" aria-pressed="${c.exit === k}">按期连续做对 ${k} 次</button>`).join('')}</div></div>
     </div>
     <div class="card stack"><h2>在其他账号使用</h2><p class="small muted" style="margin:0">每个账号使用独立的本机空间和私有云数据。换设备登录同一账号，会自动载入进度和云端题库。不同账号之间需要自行导出、导入备份；未登录时的旧数据不会自动上传到账号。</p></div>
   </aside></div>`;
@@ -1056,6 +1068,7 @@ function bindView() {
   window.MBESections.bindPicker();
   document.querySelectorAll('[data-home-detail]').forEach(el => { el.ontoggle = () => { HOME_DETAILS[el.dataset.homeDetail] = el.open; }; });
   const app = $('#app');
+  const wrongTable=app.querySelector('.wrong-table-wrap');if(wrongTable){wrongTable.scrollLeft=WB_VIEW.scrollLeft;wrongTable.addEventListener('scroll',()=>{WB_VIEW.scrollLeft=wrongTable.scrollLeft;},{passive:true});}
   app.onclick = async (e) => {
     const b = e.target.closest('button,[data-act]'); if (!b) return;
     const d = b.dataset;
@@ -1067,22 +1080,24 @@ function bindView() {
     else if (d.pool) { ST.cfg.pool = d.pool; touchCfg(); render(); }
     else if (d.mode) { ST.cfg.mode = d.mode; touchCfg(); render(); }
     else if (b.id === 'start') startBlock();
-    else if (b.id === 'dueGo') startDue();
     else if (d.resume) resume(d.resume);
     else if (d.mock) startMock(+d.mock);
-    else if (d.wbs) { WBF.status = d.wbs; WBF.limit = 60; render(); }
+    else if (d.wbSort && Object.hasOwn(WB_SORT_LABELS,d.wbSort)) {
+      if(WB_VIEW.sort===d.wbSort)WB_VIEW.dir=WB_VIEW.dir==='asc'?'desc':'asc';
+      else {WB_VIEW.sort=d.wbSort;WB_VIEW.dir=['subject','id','firstTs','latestOk'].includes(d.wbSort)?'asc':'desc';}
+      render();$(`[data-wb-sort="${d.wbSort}"]`)?.focus({preventScroll:true});
+    }
+    else if (b.hasAttribute('data-wb-reset')) {Object.assign(WB_VIEW,{sort:'lastWrongTs',dir:'desc',subject:'',scrollLeft:0});render();}
     else if (d.wbopen !== undefined) openWbItem(+d.wbopen);
     else if (d.delbank) { if (await confirmBox(`删除这台设备上的“${CODES[d.delbank]}”题库？做题记录会保留。`, '删除')) { await IDB.del('banks', d.delbank); await IDB.del('pdfs', d.delbank); await loadBanks(); render(); } }
     else if (b.id === 'doimport') doImport();
     else if (d.size) { setReadingSize(+d.size); }
     else if (d.theme) { ST.cfg.theme = d.theme; touchCfg(); applyTheme(); render(); }
-    else if (d.exit) { ST.cfg.exit = +d.exit; touchCfg(); render(); }
     else if (d.act === 'backup') exportBackup();
     else if (d.act === 'snooze') { ST.cfg.backupSnooze = now() + 7 * 864e5; touchCfg(); render(); }
-    else if (d.act === 'xlsx') exportXlsx();
-    else if (d.act === 'xdocx') exportDocx(wbItems().map((x) => x.q.id), '错题本（当前筛选）');
-    else if (d.act === 'xdocx-all') { const ids = Object.entries(ST.recs).filter(([q, r]) => Q.has(q) && wbState(r).inWB).map(([q]) => q); exportDocx(ids, '错题本（全部在本）'); }
-    else if (d.act === 'more') { WBF.limit += 60; render(); }
+    else if (d.act === 'xlsx') { if(VIEW === 'wrongbook')exportWrongXlsx();else exportXlsx(); }
+    else if (d.act === 'xdocx') exportDocx(wbItems().map((x) => x.q.id), '错题本');
+    else if (d.act === 'xdocx-all') { exportDocx(wbItems({all:true}).map(x => x.q.id), '错题本'); }
   };
   app.onsubmit = (e) => {
     if (e.target.id === 'cloud-login') { e.preventDefault(); window.MBECloud.auth('login'); }
@@ -1098,9 +1113,7 @@ function bindView() {
     else if (t.id === 'ncbeopen') { ST.cfg.ncbeOpen = t.checked; touchCfg(); }
     else if (t.id === 'pdfin') { PICKED = [...t.files].map((f) => ({ file: f, code: detectCode(f.name) })); render(); }
     else if (t.dataset.pick !== undefined) PICKED[+t.dataset.pick].code = t.value;
-    else if (t.id === 'wbg') { WBF.grp = t.value; render(); }
-    else if (t.id === 'wbr') { WBF.reason = t.value; render(); }
-    else if (t.id === 'wbguess') { WBF.guess = t.checked; render(); }
+    else if (t.id === 'wb-subject') {WB_VIEW.subject=t.value;render();$('#wb-subject')?.focus({preventScroll:true});}
     else if (t.id === 'bkin' && t.files[0]) importBackup(t.files[0]);
   };
 }
@@ -1157,11 +1170,6 @@ function continueFree() {
   if(!ACTIVE || ACTIVE.s.kind!=='free')return;
   const scope=ACTIVE.s.freeScope;ACTIVE.s.done=true;touchSession(ACTIVE.s);ACTIVE=null;startFree(scope);
 }
-function startDue() {
-  const ids = shuffle(dueIds()); if (!ids.length) return;
-  const s = newSession({ mode: 'practice', kind: 'wb', qids: ids, title: `错题复习 · ${ids.length} 题` });
-  openSession(s);
-}
 async function startMock(k) {
   const prev = Object.values(ST.sessions).filter((x) => x.kind === 'mock' + k).sort((a, b) => b.u - a.u)[0];
   if (prev && !prev.done) { openSession(prev); return; }
@@ -1213,12 +1221,9 @@ function originalExplHTML(q) {
 }
 function explHTML(q) { return window.MBETeaching.panel(q); }
 function wbPanel(q) {
-  const r = ST.recs[q.id]; const w = wbState(r); const t = today(); const rc = r && r.r ? r.r[0] : 0;
-  const hist = (r && r.a || []).slice(-8).map((x) => `<span class="tag ${x[3] ? '' : 'bad'}">${fmtDate(x[1])} ${x[2] || '未答'}${x[3] ? ' 对' : ' 错'}${x[4] ? '·' + CONF[x[4]] : ''}</span>`).join(' ');
-  return `<section class="wbp" aria-label="错题本"><div class="row between"><b>错题本</b><span class="small ${w.inWB ? '' : 'muted'}">${w.inWB ? `在本 · 下次复习 ${w.due <= t ? '今天' : fmtDay(w.due)} · 按期连续做对 ${w.streak} / ${ST.cfg.exit}` : '不在错题本'}</span></div>
-    <div class="field"><div class="label">错因</div><div class="chips">${REASONS.map(([c, n]) => `<button type="button" class="chip pill" data-q="reason" data-v="${c}" aria-pressed="${rc === c}">${n}</button>`).join('')}</div></div>
-    <div class="field"><label class="label" for="note">我的一句话规则</label><textarea id="note" placeholder="用自己的话写下这题考的规则">${esc(r && r.n ? r.n[0] : '')}</textarea></div>
-    <div class="row between"><div class="small muted">${hist || ''}</div>${w.inWB ? '<button class="btn" data-q="wbout">已掌握，移出</button>' : '<button class="btn ghost" data-q="wbin">加入错题本</button>'}</div></section>`;
+  const r = ST.recs[q.id], w = wbState(r), rc = r?.r?.[0] || 0;
+  const hist = (r?.a || []).slice(-8).map(x => `<span class="tag ${x[3] ? '' : 'bad'}">${fmtDate(x[1])} ${x[2] || '未答'}${x[3] ? ' 对' : ' 错'}${x[4] ? '·' + CONF[x[4]] : ''}</span>`).join(' ');
+  return `<section class="wbp" aria-label="错题记录"><div class="row between"><b>错题记录</b><span class="small muted">${w.wrongN ? `累计做错 ${w.wrongN} 次 · 最近 ${fmtFull(w.lastWrongTs)}` : '尚无错题记录'}</span></div><div class="field"><div class="label">错因</div><div class="chips">${REASONS.map(([c,n]) => `<button type="button" class="chip pill" data-q="reason" data-v="${c}" aria-pressed="${rc===c}">${n}</button>`).join('')}</div></div><div class="field"><label class="label" for="note">我的一句话规则</label><textarea id="note" placeholder="用自己的话写下这题考的规则">${esc(r?.n?.[0] || '')}</textarea></div><div class="row small muted">${hist}</div></section>`;
 }
 function renderActive() {
   const A = ACTIVE; if (A.view === 'result') { renderResult(); return; }
@@ -1303,8 +1308,6 @@ function bindQuiz() {
       case 'hl': { const t = LASTSEL; if (!t) { toast('先在题干里选中文字'); return; } (s.hl[q.id] = s.hl[q.id] || []).push(...t.split(/\n+/).map((x) => x.trim()).filter(Boolean)); LASTSEL = ''; window.getSelection()?.removeAllRanges(); touchSession(s, false); renderActive(); break; }
       case 'hlclear': delete s.hl[q.id]; touchSession(s, false); renderActive(); break;
       case 'reason': { const v = +d.v; const r = ST.recs[q.id]; setRecField(q.id, 'r', r && r.r && r.r[0] === v ? 0 : v); renderActive(); break; }
-      case 'wbout': setRecField(q.id, 'w', 'out'); renderActive(); toast('已移出错题本'); break;
-      case 'wbin': setRecField(q.id, 'w', 'in'); renderActive(); toast('已加入错题本'); break;
       case 'orig': { const box = $('#origbox'); if (!box.classList.contains('hide')) { box.classList.add('hide'); box.innerHTML = ''; b.textContent = '查看 PDF 原页'; return; } box.classList.remove('hide'); b.textContent = '收起原页'; renderPages(box, q.code, q.ePages); break; }
     }
   };
@@ -1461,7 +1464,7 @@ async function exportDocx(ids, title) {
       kids.push(P(`正确答案 ${q.ans}${hist ? ' · 作答记录：' + hist : ''}`, { color: '1F4E8C', size: 20 }));
       if (r.r && r.r[0]) kids.push(P('错因：' + reasonName(r.r[0]), { size: 20, bold: true }));
       if (r.n && r.n[0]) kids.push(P('我的笔记：' + r.n[0], { size: 20, bold: true }));
-      if (w.inWB) kids.push(P('下次复习：' + fmtDay(w.due), { size: 20, color: '5B6472' }));
+      if (w.inWB) kids.push(P('最近做错：' + fmtFull(w.lastWrongTs), { size: 20, color: '5B6472' }));
       for (const p of q.stem) kids.push(P(p));
       for (const [L, t] of Object.entries(q.options)) kids.push(P(`${L === q.ans ? '✓ ' : ''}${L}. ${t}`, { indent: 360, bold: L === q.ans }));
       kids.push(new Paragraph({ heading: HeadingLevel.HEADING_3, spacing: { before: 200, after: 80 }, children: [new TextRun({ text: 'Explanation', font: F })] }));
