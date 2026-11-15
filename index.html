@@ -309,6 +309,33 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 .section-choice>span:first-of-type{flex:1;min-width:0;overflow-wrap:anywhere;font-size:14px}
 .section-choice>span:last-child{flex:none;font-size:12px}
 
+/* Wide screens use all available space; progress stays expanded above practice. */
+.home-layout{display:grid;gap:20px}
+.home-progress{padding:24px 28px}
+.home-progress-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;margin-bottom:18px}
+.home-progress-heading p{margin:0;font-size:12px;color:var(--muted)}
+.subject-progress-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.subject-progress{min-width:0;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.subject-progress-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.subject-progress h3{margin:0;font:600 15px/1.5 var(--sans);color:var(--ink)}
+.subject-progress-percent{font:600 13px/1.5 var(--sans);color:var(--accent)}
+.subject-progress-count{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 7px;margin:10px 0;color:var(--muted);font-size:12px}
+.subject-progress-count strong{font:600 27px/1.1 var(--serif);color:var(--ink)}
+.subject-progress .bar{margin-bottom:10px}
+.subject-progress-rate{font-size:12px;color:var(--muted)}
+@media(min-width:761px){
+ .topnav .in,.page,.qbar .in,.qwrap{width:100%;max-width:none}
+ .qcol{width:100%;max-width:none;margin:0}
+}
+@media(max-width:760px){
+ .home-progress{padding:20px}
+ .home-progress-heading{margin-bottom:14px}
+ .subject-progress-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .subject-progress{padding:13px 12px}
+ .subject-progress h3{font-size:14px}
+ .subject-progress-count strong{font-size:24px}
+}
+
 /* Private teaching uses the same reading scale and reflows on narrow screens. */
 .teaching{margin-top:28px;border-top:2px solid var(--accent-line);padding-top:24px;font-family:var(--serif);font-size:var(--reading-size);line-height:1.8;overflow-wrap:anywhere}
 .teaching h3{font-size:1.2em;line-height:1.45;margin:8px 0 18px}.teaching h4{font-family:var(--sans);font-size:.9em;margin:20px 0 8px}.teaching p{margin:0 0 14px}.teaching-kicker{font:600 12px/1.5 var(--sans);letter-spacing:.07em;color:var(--accent)}
@@ -878,10 +905,17 @@ function viewHome() {
   const active = Object.values(ST.sessions).filter((s) => !s.done && answeredCount(s) > 0).sort((a, b) => b.u - a.u).slice(0, 3);
   const cont = active.length ? active.map((s) => { const ans = answeredCount(s); return `<div class="row between"><div><div>${esc(s.title)}</div><div class="small muted">${s.kind === 'free' ? '自由做题' : s.mode === 'exam' ? '考试模式' : '练习模式'} · 本轮已做 ${ans} / ${s.qids.length}${s.mode === 'exam' && s.lim ? ' · 剩余 ' + fmtSec(s.lim - s.el) : ''}</div></div><button class="btn ghost" data-resume="${s.id}">${s.kind !== 'free' && s.mode !== 'exam' && s.qids.every((q) => s.sub[q]) ? '看成绩' : '继续'}</button></div>`; }).join('') : '<div class="small muted">没有未完成的题组</div>';
   const due = dueIds().length;
-  const prog = GROUPS.filter((g) => g.c.some((x) => BANK[x])).map((g) => { let n = 0, d = 0, ok = 0; for (const code of g.c) for (const q of BANK[code]?.qs || []) { n++; const a = ST.recs[q.id]?.a; if (a && a.length) { d++; if (a[0][3]) ok++; } } return `<div class="prog"><div class="row between small"><span>${g.n}</span><span class="muted">${d} / ${n} · 首做正确率 ${pct(ok, d)}</span></div><div class="bar"><i style="width:${n ? (d / n) * 100 : 0}%"></i></div></div>`; }).join('');
+  const prog = GROUPS.filter((g) => g.c.some((x) => BANK[x])).map((g) => {
+    let n = 0, d = 0, ok = 0;
+    for (const code of g.c) for (const q of BANK[code]?.qs || []) {
+      n++; const attempts = ST.recs[q.id]?.a;
+      if (attempts?.length) { d++; if (attempts[0][3]) ok++; }
+    }
+    return `<article class="subject-progress" data-progress-group="${g.k}" aria-label="${g.n}做题进度"><div class="subject-progress-head"><h3>${g.n}</h3><span class="subject-progress-percent">${pct(d,n)}</span></div><p class="subject-progress-count"><strong>${d}</strong><span>/ ${n} 题已做</span></p><div class="bar" role="progressbar" aria-label="${g.n}已做题数" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${d}"><i style="width:${n ? (d/n)*100 : 0}%"></i></div><div class="subject-progress-rate">首做正确率 ${pct(ok,d)}</div></article>`;
+  }).join('');
   const mock = BANK.NCBE ? [1, 2].map((k) => { const s = Object.values(ST.sessions).filter((x) => x.kind === 'mock' + k).sort((a, b) => b.u - a.u)[0]; const st = s ? (s.done ? `已完成 · ${mockScore(s)}` : '进行中') : '100 题 · 3 小时'; return `<button class="btn" style="justify-content:space-between" data-mock="${k}"><span>第 ${k} 场</span><span class="small muted">${st}</span></button>`; }).join('') : '<div class="small muted">导入 NCBE 文件后可用</div>';
   const bk = backupBanner();
-  return `${bk}<div class="cols" style="margin-top:${bk ? 16 : 0}px"><section class="colmain"><div class="card stack" style="gap:22px">
+  return `<div class="home-layout"><section class="card home-progress" aria-labelledby="home-progress-title"><div class="home-progress-heading"><h2 id="home-progress-title">各科进度</h2><p>已做题数 · 完成比例 · 首做正确率</p></div><div class="subject-progress-grid">${prog}</div></section>${bk}<div class="cols"><section class="colmain"><div class="card stack" style="gap:22px">
     <h1>做题</h1>
     <div class="field"><div class="label">科目（可多选）</div><div class="chips">${chips}</div></div>
     <div class="field"><div class="label" id="section-filter-label">伴读章节（可多选）</div>${window.MBESections.multiPicker(codes)}<div class="small muted">自动建议可在题目中调整</div><div><button class="btn ghost" data-act="allgroups">选择全部科目</button></div></div>
@@ -903,8 +937,7 @@ function viewHome() {
     ${active.length ? `<section class="card stack"><h2>继续上次</h2>${cont}</section>` : ''}
     ${due ? `<section class="card stack"><h2>今天要复习</h2><div class="row" style="align-items:baseline;gap:8px"><span class="big-n" style="color:var(--bad)">${due}</span><span class="small muted">道错题到期（含犹豫或猜对的）</span></div><div class="small muted">间隔 1 / 3 / 7 天推回，连续做对 ${ST.cfg.exit} 次移出</div><div><button class="btn ghost" id="dueGo" ${due ? '' : 'disabled'}>开始复习</button></div></section>` : ''}
     <details class="card home-detail" data-home-detail="mock" ${HOME_DETAILS.mock ? 'open' : ''}><summary>NCBE 全真模考</summary><div class="stack"><div class="small muted">官方 200 题默认不进日常题池</div>${mock}</div></details>
-    <details class="card home-detail" data-home-detail="progress" ${HOME_DETAILS.progress ? 'open' : ''}><summary>各科进度</summary><div class="stack" style="gap:12px">${prog}</div></details>
-  </aside></div>`;
+  </aside></div></div>`;
 }
 function mockScore(s) { let ok = 0; for (const q of s.qids) if (s.ans[q] && s.ans[q] === Q.get(q)?.ans) ok++; return `${ok} / ${s.qids.length}`; }
 function backupBanner() {
