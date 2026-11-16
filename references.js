@@ -63,8 +63,8 @@ window.MBEReferences = {
     const exact = r.kind === 'book' || r.kind === 'manual';
     const kind = r.kind === 'manual' ? '已手动指定' : r.kind === 'objective' ? '按原解析考点关联' : exact ? '伴读定位' : '建议索引 · 可在下方调整';
     const title = (parent ? parent.title + ' · ' : '') + r.title;
-    const page = r.page_scope === 'point' ? `参考资料第 ${r.source_page} 页` : `参考资料本章从第 ${r.source_page} 页起`;
-    const precision = r.parent ? '' : ' · 章级定位';
+    const page = r.page_scope === 'point' ? `参考资料第 ${r.source_page} 页` : r.numbered ? `参考资料本章从第 ${r.source_page} 页起` : `参考资料该科从第 ${r.source_page} 页起`;
+    const precision = !r.numbered ? ' · 基础概念定位' : r.parent ? '' : ' · 章级定位';
     return `<aside class="reference-box" aria-label="知识点索引"><div class="reference-heading"><span class="teaching-kicker">知识点索引</span><span class="small muted">${esc(kind + precision)}</span></div><div class="reference-main"><strong class="reference-index">${esc(r.index)}</strong><div class="reference-title">${esc(title)}</div></div><p class="reference-locator">${esc(page)} · 单科伴读第 ${r.companion_page} 页</p><details class="reference-source"><summary>编号与资料定位</summary><p>${esc(this.data.source_name)}；单科文件：${esc(r.companion_file)}。</p><p>第一个数字对应科目，字母对应章，带圈数字对应小节。章级条目及原稿没有独立编号的基础部分保留原层级。</p></details></aside>`;
   }
 };
