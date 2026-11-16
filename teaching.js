@@ -5,9 +5,10 @@ window.MBETeaching={
   safe(s){return esc(String(s).replace(/"([^"]+)"/g,'“$1”').replace(/(\p{L})'(?=\p{L})/gu,'$1’').replace(/'([^']+)'/g,'‘$1’').replace(/\{REF:[^|}]+\|([^}]+)\}/g,'$1')).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');},
   paragraphs(items){return (items||[]).map(p=>`<p>${this.safe(p)}</p>`).join('');},
   content(q,state){
+    const reference=window.MBEReferences?.panel(q,state)||'';
     if(state?.body){
       const b=state.body,k=b.knowledge,chapter=MBESections.nodes.get(k.chapter_id),sub=MBESections.nodes.get(k.subsection_id);
-      return `<aside class="knowledge-box" aria-label="本题知识点"><div class="teaching-kicker">本题知识点</div><dl><div><dt>章节</dt><dd>${esc(chapter?.title||'待核对')}</dd></div><div><dt>子章节</dt><dd>${esc(sub?.title||'本章综合')}</dd></div><div><dt>子知识点</dt><dd>${(k.concepts||[]).map(x=>`<span class="concept-tag">${esc(x)}</span>`).join('')}</dd></div></dl></aside>
+      return `${reference}<aside class="knowledge-box" aria-label="本题知识点"><div class="teaching-kicker">本题知识点</div><dl><div><dt>章节</dt><dd>${esc(chapter?.title||'待核对')}</dd></div><div><dt>子章节</dt><dd>${esc(sub?.title||'本章综合')}</dd></div><div><dt>子知识点</dt><dd>${(k.concepts||[]).map(x=>`<span class="concept-tag">${esc(x)}</span>`).join('')}</dd></div></dl></aside>
         <section class="essay-model" lang="en"><div class="teaching-kicker">01 · 英文 Essay 式示范</div><h3>${esc(b.essay.title)}</h3><div class="etext">${this.paragraphs(b.essay.paragraphs)}</div></section>
         <section class="chinese-analysis" lang="zh-CN"><div class="teaching-kicker">02 · 中文解析</div><p class="teaching-summary">${this.safe(b.zh.summary)}</p><h4>适用规则</h4>${this.paragraphs(b.zh.rule)}<h4>本题如何适用</h4>${this.paragraphs(b.zh.application)}
         <div class="option-analysis">${'ABCD'.split('').map(letter=>`<section class="analysis-choice ${letter===q.ans?'correct':''}"><h4>${letter} · ${letter===q.ans?'正确':'错误'}</h4><p>${this.safe(b.zh.options[letter])}</p></section>`).join('')}</div>
@@ -17,7 +18,7 @@ window.MBETeaching={
     }
     const messages={signedout:'登录后可读取私有云端解析。',offline:'联网后可载入中文解析与英文示范。',loading:'正在准备英文示范与中文解析，首次可能需要约一分钟…',review:'本题的来源或答案需要核对，暂不展示未经核对的新解析。',reserved:'此题属于保留的 NCBE 练习题，继续保留原解析。',free_credit_limit:'免费生成额度已用尽或到期，已有解析仍可阅读。',cloud_bank_required:'请先将这份题库备份到云端，再载入新解析。',answer_first:'作答记录尚未同步，请稍后重试。',error:'新解析暂未载入，做题记录已保留。'};
     const key=state?.state||'loading';
-    return `<div class="teaching-status" role="status"><p>${messages[key]||messages.error}</p>${state?.state==='review'&&state.reason?`<p>${this.safe(state.reason)}</p>`:''}${!['signedout','loading','reserved','review','free_credit_limit'].includes(key)?`<button class="btn" type="button" data-teaching-retry="${esc(q.id)}">重新载入解析</button>`:''}</div>`;
+    return `${reference}<div class="teaching-status" role="status"><p>${messages[key]||messages.error}</p>${state?.state==='review'&&state.reason?`<p>${this.safe(state.reason)}</p>`:''}${!['signedout','loading','reserved','review','free_credit_limit'].includes(key)?`<button class="btn" type="button" data-teaching-retry="${esc(q.id)}">重新载入解析</button>`:''}</div>`;
   },
   panel(q){
     const state=this.states.get(q.id);

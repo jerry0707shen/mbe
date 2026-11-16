@@ -1,7 +1,7 @@
 'use strict';
 // Topic data contains headings, one-way fingerprints and hashed topic features only.
 window.MBESections = {
-  data: null, nodes: new Map(), assignments: new Map(), error: '', revision: 0,
+  data: null, nodes: new Map(), assignments: new Map(), fingerprints: new Map(), error: '', revision: 0,
   async prepare() {
     try {
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
@@ -31,10 +31,11 @@ window.MBESections = {
   },
   async indexBanks() {
     if (!this.data) return;
-    const rev=++this.revision, next=new Map();
+    const rev=++this.revision, next=new Map(), fingerprints=new Map();
     for(const q of Q.values()) {
-      if(q.code==='NCBE')continue; // The separately reserved mock bank stays separate.
       const group=groupOf(q.code).k, hash=await this.fingerprint(q);
+      fingerprints.set(q.id,hash);
+      if(q.code==='NCBE')continue; // No advance topic hints for the reserved mock bank.
       const exact=this.data.exact[group+':'+hash];
       if(exact) { next.set(q.id,{id:exact,kind:'book'}); continue; }
       const v=this.features(q), scores=[];
@@ -51,7 +52,7 @@ window.MBESections = {
         next.set(q.id,{id,kind:'auto',score});
       }
     }
-    if(rev===this.revision)this.assignments=next;
+    if(rev===this.revision){this.assignments=next;this.fingerprints=fingerprints;}
   },
   assignment(qid) {
     const manual=ST.recs[qid]?.g?.[0];
@@ -132,8 +133,9 @@ window.MBESections = {
     return `<select id="${id}" aria-label="伴读章节">${options}</select>`;
   },
   questionPanel(q) {
-    if(q.code==='NCBE' || !this.data)return '';
+    if(!this.data)return '';
     const a=this.assignment(q.id),kind={book:'伴读精确匹配',auto:'自动建议，可调整',manual:'已手动调整',unassigned:'待分节'}[a.kind];
-    return `<details class="card stack" style="margin-top:16px"><summary>伴读分节 · ${esc(this.label(q.id))}</summary><p class="small muted">${kind}。按题目内容关联伴读目录，不改变题号或原题。</p>${this.picker([q.code],ST.recs[q.id]?.g?.[0]||'','question-section',false)}</details>`;
+    const codes=q.code==='NCBE'?GROUPS.flatMap(g=>g.c):[q.code];
+    return `<details class="card stack" style="margin-top:16px"><summary>伴读分节 · ${esc(this.label(q.id))}</summary><p class="small muted">${kind}。按题目内容关联伴读目录，不改变题号或原题；调整后会更新上方知识点索引。</p>${this.picker(codes,ST.recs[q.id]?.g?.[0]||'','question-section',false)}</details>`;
   }
 };

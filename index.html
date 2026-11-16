@@ -359,15 +359,17 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 .essay-model{margin-bottom:32px}.chinese-analysis{border-top:1px solid var(--line);padding-top:24px}.teaching-summary{margin-top:14px!important}.analysis-choice{padding:12px 16px;border:1px solid var(--line);border-radius:7px;margin-top:12px}.analysis-choice h4{margin:0 0 8px}.analysis-choice p{margin:0}.analysis-choice.correct{border-color:var(--accent-line);background:var(--ok-weak)}
 .takeaway{border-left:3px solid var(--accent);padding:12px 16px;background:var(--accent-weak);margin:24px 0}.takeaway b{font:600 12px var(--sans);color:var(--accent)}.takeaway p{margin:8px 0 0}.rule-flow{list-style:none;padding:0;display:grid;gap:8px;counter-reset:rule-step}.rule-flow li{padding:10px 14px;border:1px solid var(--line);border-radius:6px;counter-increment:rule-step}.rule-flow li:before{content:counter(rule-step) ' · ';color:var(--accent);font-family:var(--sans)}
 .teaching-footnote{font-family:var(--sans);line-height:1.6}.teaching-original{margin-top:18px;border-top:1px solid var(--line);padding-top:14px;font-family:var(--sans)}.teaching-original>summary{cursor:pointer;font-size:13px;color:var(--muted);min-height:44px;display:flex;align-items:center}.teaching-status{font-family:var(--sans);font-size:14px;padding:18px;background:var(--accent-weak);border-radius:8px}.teaching .etext{font-size:inherit}.teaching-original .expl{font-family:var(--serif)}
+.reference-box{font-family:var(--sans);border:2px solid var(--accent-line);border-left:5px solid var(--accent);border-radius:9px;background:var(--accent-weak);padding:18px;margin-bottom:20px}.reference-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.reference-main{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:12px 0 8px}.reference-index{font:700 clamp(24px,2.2vw,34px)/1.3 var(--sans);color:var(--accent);letter-spacing:.02em;white-space:nowrap}.reference-title{font-size:15px;line-height:1.6;flex:1;min-width:min(100%,220px)}.teaching .reference-locator{font-size:12px;color:var(--muted);margin:0}.reference-source{font-size:12px;color:var(--muted);margin-top:8px}.reference-source summary{cursor:pointer;min-height:44px;display:flex;align-items:center}.reference-source p{margin:0 0 6px}
 @media(max-width:600px){.knowledge-box{padding:14px}.knowledge-box dl>div{grid-template-columns:56px 1fr;gap:8px}.knowledge-box dd{font-size:13px}.analysis-choice{padding:12px}.teaching{padding-top:20px}.teaching .etext{gap:12px}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script src="./cloud-config.js?v=20261101-supabase"></script>
-<script src="./cloud.js?v=20261113-builtin"></script>
-<script src="./study.js?v=20261113-chapters"></script>
-<script src="./teaching.js?v=20261113-2"></script>
+<script src="./cloud.js?v=20261116-sync"></script>
+<script src="./study.js?v=20261116-index"></script>
+<script src="./references.js?v=20261116-1"></script>
+<script src="./teaching.js?v=20261116-index"></script>
 <script src="./builtin.js?v=20261113-1"></script>
 <script>
 'use strict';
@@ -647,10 +649,18 @@ function mergeRec(a, b) {
   if (!a) return clone(b); if (!b) return a;
   const out = { ...a }; const seen = new Set((a.a || []).map((x) => x[0])); const at = [...(a.a || [])];
   for (const x of b.a || []) if (!seen.has(x[0])) { at.push(x); seen.add(x[0]); }
-  at.sort((x, y) => x[1] - y[1]); out.a = at;
+  at.sort((x, y) => x[1] - y[1] || (String(x[0]) < String(y[0]) ? -1 : String(x[0]) > String(y[0]) ? 1 : 0)); out.a = at;
   for (const k of ['r', 'n', 'f', 'w', 'g']) if (b[k] && (!a[k] || b[k][1] > a[k][1])) out[k] = b[k];
   if (!out.h && b.h) out.h = b.h;
   return out;
+}
+// PostgreSQL jsonb reorders object keys. Compare values, never wire key order.
+function sameValue(a, b) {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ak = Object.keys(a), bk = Object.keys(b);
+  return ak.length === bk.length && ak.every(k => Object.prototype.hasOwnProperty.call(b, k) && sameValue(a[k], b[k]));
 }
 function docBody(key) {
   if (key.startsWith('q_')) return { recs: chunkRecs(key.slice(2)), u: now() };
@@ -692,6 +702,7 @@ async function loadLocal() {
 // ================= cloud sync =================
 const Sync = {
   col: null, status: 'local', dirty: new Set(), busy: false, ro: false, seeded: false, lastOk: 0, t: null,
+  timeoutMs: 25000, retryTimer: null, failures: 0, lastError: '',
   set(s) { this.status = s; renderSync(); },
   async init() { await window.MBECloud.connect(this); },
   onSnap(snap) {
@@ -701,9 +712,9 @@ const Sync = {
       if (d.id.startsWith('q_')) {
         const ch = d.id.slice(2); const recs = data.recs || {}; let differs = false;
         for (const [qid, r] of Object.entries(recs)) {
-          const cur = ST.recs[qid]; const m = mergeRec(cur, r); const ms = JSON.stringify(m);
-          if (!cur || ms !== JSON.stringify(cur)) { ST.recs[qid] = m; indexRec(qid); changed = true; Local.mark(d.id); }
-          if (ms !== JSON.stringify(r)) differs = true;
+          const cur = ST.recs[qid]; const m = mergeRec(cur, r);
+          if (!cur || !sameValue(m, cur)) { ST.recs[qid] = m; indexRec(qid); changed = true; Local.mark(d.id); }
+          if (!sameValue(m, r)) differs = true;
         }
         for (const qid of CH.get(ch) || []) if (!(qid in recs)) differs = true;
         if (differs) this.mark(d.id);
@@ -728,26 +739,39 @@ const Sync = {
   mark(k) { if (!this.col || this.ro) return; this.dirty.add(k); this.set('syncing'); clearTimeout(this.t); this.t = setTimeout(() => this.kick(), 1500); },
   async kick() {
     if (this.busy || !this.col || this.ro || !this.seeded) return;
+    clearTimeout(this.retryTimer); this.retryTimer = null;
+    if (!navigator.onLine) { this.set('offline'); return; }
     const k = this.dirty.values().next().value; if (!k) { if (this.status === 'syncing') this.set('on'); return; }
     this.dirty.delete(k); const body = docBody(k); if (!body) { this.kick(); return; }
+    const col = this.col, controller = new AbortController(); let timeout;
     this.busy = true; if (this.status !== 'syncing') this.set('syncing');
-    try { await this.col.doc(k).set(clone(body)); this.lastOk = now(); }
+    try {
+      await Promise.race([
+        col.doc(k).set(clone(body), { signal: controller.signal }),
+        new Promise((_, reject) => { timeout = setTimeout(() => { controller.abort(); reject(new Error('云端响应超时，已保留待同步记录')); }, this.timeoutMs); })
+      ]);
+      if (col !== this.col) return;
+      this.lastOk = now(); this.failures = 0; this.lastError = '';
+    }
     catch (e) {
-      const c = e && e.code; this.busy = false;
+      if (col !== this.col) return;
+      const c = e && e.code; this.lastError = e?.message || '暂时无法连接云端'; this.dirty.add(k);
       if (c === 'invalid_argument' || c === 'not_granted') { this.ro = true; this.set('readonly'); return; }
       if (c === 'quota_exceeded') { this.dirty.add(k); this.set('error'); toast('云端空间已满，进度仍保存在本机'); return; }
-      this.dirty.add(k); this.set('offline'); setTimeout(() => this.kick(), 5000 + Math.random() * 4000); return;
+      this.set('offline'); this.failures++;
+      this.retryTimer = setTimeout(() => this.kick(), Math.min(60000, 5000 * 2 ** Math.min(this.failures - 1, 4)) + Math.random() * 1500); return;
     }
-    this.busy = false;
+    finally { clearTimeout(timeout); this.busy = false; }
+    if (col !== this.col) return;
     if (this.dirty.size) setTimeout(() => this.kick(), 200); else this.set('on');
   },
 };
 const SYNC_TEXT = {
   unconfigured: ['', '云同步尚未启用'], signedout: ['', '未登录 · 仅本机保存'],
   local: ['', '仅本机保存'], connecting: ['warn', '连接云端…'], on: ['on', '进度已同步'], syncing: ['warn', '同步中…'],
-  offline: ['warn', '离线，联网后自动同步'], readonly: ['', '此账号仅本机保存'], error: ['warn', '同步出错，进度在本机'],
+  offline: ['warn', '暂未同步 · 本机已保存，将自动重试'], readonly: ['', '此账号仅本机保存'], error: ['warn', '同步出错，进度在本机'],
 };
-function renderSync() { const [c, t] = SYNC_TEXT[Sync.status] || SYNC_TEXT.local; const lib=window.MBECloud; for (const el of $$('.syncpill')) el.innerHTML = `<span class="dot ${c}"></span>${t}${lib.libraryLoading ? ' · 准备题库 '+lib.libraryDone+'/'+lib.libraryTotal : ''}`; }
+function renderSync() { const [c, t] = SYNC_TEXT[Sync.status] || SYNC_TEXT.local; const lib=window.MBECloud; for (const el of $$('.syncpill')) { el.innerHTML = `<span class="dot ${c}"></span>${t}${Sync.status==='syncing' && Sync.dirty.size ? '（待同步 '+Sync.dirty.size+' 组）' : ''}${lib.libraryLoading ? ' · 准备题库 '+lib.libraryDone+'/'+lib.libraryTotal : ''}`; el.title = Sync.lastError || (Sync.lastOk ? '最近成功同步：'+fmtFull(Sync.lastOk) : ''); } }
 
 // ================= question bank =================
 const BANK = {}; const Q = new Map();
@@ -1480,7 +1504,7 @@ async function exportDocx(ids, title) {
 // ================= init =================
 async function init() {
   $('#app').innerHTML = '<div class="page"><div class="card empty"><div class="muted">正在加载…</div></div></div>';
-  await Promise.all([window.MBECloud.prepare(), window.MBESections.prepare()]);
+  await Promise.all([window.MBECloud.prepare(), window.MBESections.prepare(), window.MBEReferences.prepare()]);
   const durable = await IDB.open();
   if (!durable) setTimeout(() => toast('此浏览器无法持久保存，本机数据离开后可能丢失；请使用正常浏览模式并导出备份'), 500);
   try { await loadLocal();applyTheme();$('#app').innerHTML='<div class="page"><div class="card empty"><h1>准备内置题库</h1><p class="muted" data-builtin-progress>正在准备内置题库…</p></div></div>';await window.MBEBuiltin.ensure();await loadBanks(); } catch (e) {

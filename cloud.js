@@ -4,6 +4,15 @@ window.MBECloud = {
   client: null, user: null, ready: false, error: '', files: [], busy: false,
   message: '', recovery: false, timer: null, generation: 0, pending: new Set(), libraryLoading: false, libraryDone: 0, libraryTotal: 0, libraryCacheChanged: false,
   configured() { const c = window.MBE_CLOUD_CONFIG; return !!(c && c.url && c.publishableKey); },
+  async request(make, timeoutMs = 20000) {
+    const controller = new AbortController(); let timer;
+    try {
+      return await Promise.race([
+        Promise.resolve().then(() => make(controller.signal)),
+        new Promise((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('云端响应超时，请稍后重试')); }, timeoutMs); })
+      ]);
+    } finally { clearTimeout(timer); }
+  },
   validConfig(c) {
     const u = new URL(c.url);
     if (u.protocol !== 'https:' || u.username || u.password || u.search || u.hash || !/^\/?$/.test(u.pathname)) throw new Error('云服务地址必须是 HTTPS 项目根地址');
@@ -25,7 +34,7 @@ window.MBECloud = {
         persistSession: true, autoRefreshToken: true, detectSessionInUrl: true,
         storageKey: 'mbe-auth-' + new URL(url).hostname
       } });
-      const { data, error } = await this.client.auth.getSession();
+      const { data, error } = await this.request(() => this.client.auth.getSession());
       if (error) throw error;
       this.user = data.session?.user || null;
       this.ready = true;
@@ -57,8 +66,8 @@ window.MBECloud = {
     }
     const generation = this.generation;
     sync.col = {
-      doc: key => ({ set: async body => {
-        const { data, error } = await this.client.rpc('mbe_save_document', { p_key: key, p_body: body });
+      doc: key => ({ set: async (body, options = {}) => {
+        const { data, error } = await this.client.rpc('mbe_save_document', { p_key: key, p_body: body }).abortSignal(options.signal);
         if (error) throw error;
         if (generation === this.generation) sync.onSnap({ docs: [{ id: key, data: () => data }], metadata: { fromCache: false } });
       } })
@@ -70,17 +79,18 @@ window.MBECloud = {
         // Paginate: a long study history can exceed the API's default 1000 rows.
         let rows = [], start = 0;
         for (;;) {
-          const { data, error } = await this.client.from('mbe_documents').select('doc_key,body')
-            .eq('user_id', this.user.id).order('doc_key').range(start, start + 499);
+          const { data, error } = await this.request(signal => this.client.from('mbe_documents').select('doc_key,body')
+            .eq('user_id', this.user.id).order('doc_key').range(start, start + 499).abortSignal(signal));
           if (error) throw error;
           rows.push(...data); if (data.length < 500) break; start += 500;
         }
         if (generation !== this.generation) return;
         sync.onSnap({ docs: rows.map(r => ({ id: r.doc_key, data: () => r.body })), metadata: { fromCache: false } });
         sync.lastOk = now();
+        sync.lastError = ''; this.error = '';
         if (!sync.busy && !sync.dirty.size) sync.set('on');
         sync.kick();
-      } catch (e) { if (generation === this.generation) { sync.set('offline'); this.error = '进度未同步：' + e.message; } }
+      } catch (e) { if (generation === this.generation) { sync.lastError = e.message; sync.set('offline'); this.error = '进度未同步：' + e.message; } }
       finally { this.pulling = false; }
     };
     sync.set('connecting');
@@ -181,7 +191,7 @@ window.MBECloud = {
   },
   async refreshFiles(strict = false) {
     if (!this.user) return;
-    const { data, error } = await this.client.from('mbe_library').select('*').eq('user_id', this.user.id).order('code');
+    const { data, error } = await this.request(signal => this.client.from('mbe_library').select('*').eq('user_id', this.user.id).order('code').abortSignal(signal));
     if (error) { if (strict) throw error; this.message = '未能读取云端题库：' + error.message; return; }
     this.files = data;
   },
@@ -256,7 +266,7 @@ window.MBECloud = {
     });
   },
   async downloadVerified(path, expected) {
-    const { data, error } = await this.client.storage.from('mbe-private').download(path);
+    const { data, error } = await this.request(() => this.client.storage.from('mbe-private').download(path), 45000);
     if (error) throw error;
     if (await this.digest(data) !== expected) throw new Error('云端文件校验失败，请稍后重试');
     return data;
