@@ -11,12 +11,12 @@ details.home-detail[open] > summary{margin-bottom:12px}
 #section-filter,#question-section{width:100%;min-height:44px;padding:10px;border:1px solid var(--line2);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
 
 :root{
-  --bg:#fff; --surface:#fff; --line:#dedede; --line2:#ababab;
-  --ink:#000; --ink2:#343434; --muted:#606060;
-  --accent:#171717; --accent-weak:#f3f3f3; --accent-ink:#fff; --accent-line:#d2d2d2;
-  --ok:#202020; --ok-weak:#ededed; --bad:#666; --bad-weak:#f7f7f7; --bad-ink:#333;
-  --flag:#4a4a4a; --mark:#ddd; --mark-ink:#000; --tbl:#f7f7f7;
-  --sans:Arial,Helvetica,'PingFang SC','Microsoft YaHei',sans-serif;
+  --bg:#fff; --surface:#fff; --line:#e0e6ec; --line2:#a9b6c3;
+  --ink:#151a20; --ink2:#404a56; --muted:#556372;
+  --accent:#294f75; --accent-weak:#edf3f9; --accent-ink:#fff; --accent-line:#c5d6e6;
+  --ok:#21684d; --ok-weak:#edf7f0; --bad:#a53736; --bad-weak:#fff0ef; --bad-ink:#922e2c;
+  --flag:#98561b; --flag-weak:#fff4e3; --mark:#f6e5ae; --mark-ink:#221d13; --tbl:#f6f8fa;
+  --sans:Arial,'Heiti SC',STHeiti,SimHei,'Noto Sans CJK SC','Microsoft YaHei','PingFang SC',sans-serif;
   --reading-size:16px; --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
   --bar:var(--surface); --bar-ink:var(--ink); --bar-muted:var(--muted); --bar-line:var(--line2);
   color-scheme:light;
@@ -24,20 +24,20 @@ details.home-detail[open] > summary{margin-bottom:12px}
   padding-bottom:var(--safe-bottom);
 }
 :root[data-theme=dark]{
-  --bg:#111; --surface:#171717; --line:#3a3a3a; --line2:#666;
-  --ink:#f2f2f2; --ink2:#dbdbdb; --muted:#b7b7b7;
-  --accent:#ededed; --accent-weak:#282828; --accent-ink:#151515; --accent-line:#555;
-  --ok:#e3e3e3; --ok-weak:#303030; --bad:#bdbdbd; --bad-weak:#222; --bad-ink:#dedede;
-  --flag:#b7b7b7; --mark:#505050; --mark-ink:#fff; --tbl:#212121;
+  --bg:#141a20; --surface:#181f27; --line:#37434f; --line2:#586878;
+  --ink:#f0f3f6; --ink2:#d2dbe3; --muted:#a9b7c4;
+  --accent:#a4c5e6; --accent-weak:#233448; --accent-ink:#18242f; --accent-line:#455d77;
+  --ok:#94d6b2; --ok-weak:#213a30; --bad:#efaaa6; --bad-weak:#412a2b; --bad-ink:#f2b5b0;
+  --flag:#e7b47c; --flag-weak:#3c3024; --mark:#5b4a26; --mark-ink:#ffeec4; --tbl:#1d2934;
   color-scheme:dark;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme=light]){
-    --bg:#111; --surface:#171717; --line:#3a3a3a; --line2:#666;
-    --ink:#f2f2f2; --ink2:#dbdbdb; --muted:#b7b7b7;
-    --accent:#ededed; --accent-weak:#282828; --accent-ink:#151515; --accent-line:#555;
-    --ok:#e3e3e3; --ok-weak:#303030; --bad:#bdbdbd; --bad-weak:#222; --bad-ink:#dedede;
-    --flag:#b7b7b7; --mark:#505050; --mark-ink:#fff; --tbl:#212121;
+    --bg:#141a20; --surface:#181f27; --line:#37434f; --line2:#586878;
+    --ink:#f0f3f6; --ink2:#d2dbe3; --muted:#a9b7c4;
+    --accent:#a4c5e6; --accent-weak:#233448; --accent-ink:#18242f; --accent-line:#455d77;
+    --ok:#94d6b2; --ok-weak:#213a30; --bad:#efaaa6; --bad-weak:#412a2b; --bad-ink:#f2b5b0;
+    --flag:#e7b47c; --flag-weak:#3c3024; --mark:#5b4a26; --mark-ink:#ffeec4; --tbl:#1d2934;
     color-scheme:dark;
   }
 }
@@ -352,7 +352,7 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 .reference-box{font-family:var(--sans);border:2px solid var(--accent-line);border-left:5px solid var(--accent);border-radius:9px;background:var(--accent-weak);padding:18px;margin-bottom:20px}.reference-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.reference-main{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:12px 0 8px}.reference-index{font:700 clamp(24px,2.2vw,34px)/1.3 var(--sans);color:var(--accent);letter-spacing:.02em;white-space:nowrap}.reference-title{font-size:15px;line-height:1.6;flex:1;min-width:min(100%,220px)}.teaching .reference-locator{font-size:12px;color:var(--muted);margin:0}.reference-source{font-size:12px;color:var(--muted);margin-top:8px}.reference-source summary{cursor:pointer;min-height:44px;display:flex;align-items:center}.reference-source p{margin:0 0 6px}
 @media(max-width:600px){.knowledge-box{padding:14px}.knowledge-box dl>div{grid-template-columns:56px 1fr;gap:8px}.knowledge-box dd{font-size:13px}.analysis-choice{padding:12px}.teaching{padding-top:20px}.teaching .etext{gap:12px}}
 </style>
-<link rel="stylesheet" href="./practice.css?v=20261123">
+<link rel="stylesheet" href="./practice.css?v=20261123-2">
 </head>
 <body>
 <div id="app"></div>
@@ -360,7 +360,7 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 <script src="./cloud.js?v=20261116-sync"></script>
 <script src="./study.js?v=20261116-index"></script>
 <script src="./references.js?v=20261116-2"></script>
-<script src="./teaching.js?v=20261116-index"></script>
+<script src="./teaching.js?v=20261123-cache"></script>
 <script src="./builtin.js?v=20261113-1"></script>
 <script src="./practice.js?v=20261123"></script>
 <script>
@@ -693,6 +693,7 @@ let cfgT = null;
 function touchCfg() { ST.cfg.u = now(); Local.mark('cfg'); clearTimeout(cfgT); cfgT = setTimeout(() => {cfgT=null;Sync.mark('cfg');}, 800); }
 async function loadLocal() {
   const kv = await IDB.all('kv');
+  window.MBETeaching.hydrate(kv);
   for (const [k, v] of Object.entries(kv)) {
     if (k.startsWith('q_')) for (const [qid, r] of Object.entries(v.recs || {})) { ST.recs[qid] = mergeRec(ST.recs[qid], r); indexRec(qid); }
     else if (k.startsWith('s_')) ST.sessions[k.slice(2)] = v;
@@ -893,6 +894,22 @@ function poolIds(codes, pool, sections = []) {
 const TABS = [['home', '做题', I.plus], ['wrongbook', '错题本', I.book], ['more', '更多', I.more]];
 // Keep stored preference levels; the standard level matches 12pt Arial on the exam paper.
 const READING_PX = {14:13,16:14,18:15,20:16,22:18,24:20};
+const WIDTH_LABELS = { narrow: '窄', standard: '标准', wide: '宽' };
+const WIDTH_PREF = 'mbe-desktop-reading-width';
+function readingWidth() {
+  try { const value = localStorage.getItem(WIDTH_PREF); if (Object.hasOwn(WIDTH_LABELS, value)) return value; } catch (_) {}
+  return 'standard';
+}
+function widthButtons() {
+  const current = document.documentElement.dataset.readingWidth || 'standard';
+  return `<div class="seg width-toggle" role="group" aria-label="电脑端文字宽度">${Object.entries(WIDTH_LABELS).map(([key, label]) => `<button type="button" data-width="${key}" aria-pressed="${current === key}">${label}</button>`).join('')}</div>`;
+}
+function setReadingWidth(value) {
+  if (!Object.hasOwn(WIDTH_LABELS, value)) return;
+  document.documentElement.dataset.readingWidth = value;
+  try { localStorage.setItem(WIDTH_PREF, value); } catch (_) {}
+  for (const button of document.querySelectorAll('[data-width]')) button.setAttribute('aria-pressed', String(button.dataset.width === value));
+}
 function readingSize() { return Object.hasOwn(READING_PX, +ST.cfg.readingSize) ? +ST.cfg.readingSize : 20; }
 function updateReadingButtons() { for(const b of document.querySelectorAll('[data-size]'))b.setAttribute('aria-pressed',String(+b.dataset.size===readingSize()));const down=document.querySelector('[data-q=smaller]'),up=document.querySelector('[data-q=larger]');if(down)down.disabled=readingSize()===14;if(up)up.disabled=readingSize()===24; }
 function setReadingSize(n) { ST.cfg.readingSize=Math.max(14,Math.min(24,n));touchCfg();Local.flush();applyTheme(); }
@@ -900,10 +917,11 @@ let VIEW = 'home'; let ACTIVE = null; let PAUSED = false;
 function applyTheme() { updateReadingButtons(); document.documentElement.style.setProperty('--reading-size', READING_PX[readingSize()] + 'px'); const t = ST.cfg.theme; if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
 function shell(inner) {
   const tab = VIEW === 'stats' ? 'home' : VIEW === 'library' ? 'more' : VIEW;
+  const pageName = ACTIVE ? 'result' : tab;
   const nav = TABS.map(([k, n]) => `<a href="#${k}" ${tab === k ? 'aria-current="page"' : ''}>${n}</a>`).join('');
   const bnav = TABS.map(([k, n, ic]) => `<a href="#${k}" ${tab === k ? 'aria-current="page"' : ''}>${ic}<span>${n}</span></a>`).join('');
-  return `<a class="study-skip-link" href="#study-main">跳到正文</a><header class="topnav"><div class="in"><a class="brand study-brand" href="#home" aria-label="MBE 刷题器首页">MBE 刷题器</a><nav class="tabs" aria-label="主导航">${nav}</nav>${!ACTIVE && (VIEW === 'more' || VIEW === 'library') ? '<div class="syncpill" role="status" aria-live="polite"></div>' : ''}</div></header>
-  <main class="page" id="study-main" tabindex="-1">${inner}</main><nav class="bottomnav" aria-label="底部导航">${bnav}</nav>`;
+  return `<a class="study-skip-link" href="#study-main">跳到正文</a><header class="topnav" data-page="${pageName}"><div class="in"><a class="brand study-brand" href="#home" aria-label="MBE 刷题器首页">MBE 刷题器</a><nav class="tabs" aria-label="主导航">${nav}</nav>${!ACTIVE && (VIEW === 'more' || VIEW === 'library') ? '<div class="syncpill" role="status" aria-live="polite"></div>' : ''}</div></header>
+  <main class="page" data-page="${pageName}" id="study-main" tabindex="-1">${inner}</main><nav class="bottomnav" aria-label="底部导航">${bnav}</nav>`;
 }
 function studyHeading(title, help, aside = '') {
   return `<header class="study-inner-head"><div class="study-inner-title"><h1>${title}</h1><p>${help}</p></div>${aside ? `<div class="study-inner-aside">${aside}</div>` : ''}</header>`;
@@ -1005,7 +1023,7 @@ function viewWrong() {
   const items=wbItems(),all=wbItems({all:true}),counts=new Map();
   for(const x of all){const group=groupOf(x.q.code).k;counts.set(group,(counts.get(group)||0)+1);}
   const options=GROUPS.concat([{k:'NCBE',n:'NCBE 官方题'}]).filter(g=>counts.has(g.k)).map(g=>`<option value="${g.k}" ${WB_VIEW.subject===g.k?'selected':''}>${g.n}（${counts.get(g.k)}）</option>`).join('');
-  const rows=items.map(({q,r,w},i)=>`<tr data-wb-row="${esc(q.id)}"><td>${groupOf(q.code).n}</td><td><button type="button" class="wrong-open" data-wbopen="${i}" data-wb-id="${esc(q.id)}" aria-label="查看 ${esc(q.id)}">${esc(q.id)}</button></td><td>${wrongTime(w.lastWrongTs)}</td><td>${wrongTime(w.firstTs)}</td><td class="wrong-count">${w.wrongN}</td><td><span class="tag ${w.latestOk?'':'bad'}">${w.latestOk?'已做对':'仍做错'}</span></td><td class="wrong-preview"><div>${esc(q.stem.join(' '))}</div></td><td class="wrong-note"><div>${esc(r.n?.[0] || '')}</div>${r.r?.[0]?`<span class="small muted">${reasonName(r.r[0])}</span>`:''}</td></tr>`).join('');
+  const rows=items.map(({q,r,w},i)=>`<tr data-wb-row="${esc(q.id)}"><td>${groupOf(q.code).n}</td><td><button type="button" class="wrong-open" data-wbopen="${i}" data-wb-id="${esc(q.id)}" aria-label="查看 ${esc(q.id)}">${esc(q.id)}</button></td><td>${wrongTime(w.lastWrongTs)}</td><td>${wrongTime(w.firstTs)}</td><td class="wrong-count">${w.wrongN}</td><td><span class="tag ${w.latestOk?'ok':'bad'}">${w.latestOk?'已做对':'仍做错'}</span></td><td class="wrong-preview"><div>${esc(q.stem.join(' '))}</div></td><td class="wrong-note"><div>${esc(r.n?.[0] || '')}</div>${r.r?.[0]?`<span class="small muted">${reasonName(r.r[0])}</span>`:''}</td></tr>`).join('');
   const needsReview = all.filter(x => !x.w.latestOk).length;
   return `${studyHeading('错题本', '点击题号查看解析，回顾当时的选择。', `<span class="study-inner-number">${needsReview.toLocaleString('en-US')}</span><span>道最近仍做错</span>`)}<section class="stack" aria-label="错题列表" style="gap:16px"><div class="card stack" style="gap:14px"><div class="row between"><h2>错题明细</h2><div class="row"><button class="btn" data-act="xdocx">${I.dl}导出 Word</button><button class="btn" data-act="xlsx">${I.dl}导出 Excel</button></div></div><div class="row between"><div class="row"><label for="wb-subject" class="small muted">科目</label><select id="wb-subject" class="num" style="width:auto;min-height:44px"><option value="">全部科目</option>${options}</select><button type="button" class="btn ghost" data-wb-reset>重置</button></div><span class="small muted">共 ${all.length} 道错题${WB_VIEW.subject?' · 当前显示 '+items.length+' 道':''}</span></div><p class="small muted" style="margin:0">默认按最近做错时间从新到旧。点表头排序，窄屏可左右滑动。</p></div>${items.length?`<div class="wrong-table-wrap" role="region" aria-label="错题明细" tabindex="0"><table class="wrong-table"><thead><tr>${wrongSortHead('subject')}${wrongSortHead('id')}${wrongSortHead('lastWrongTs')}${wrongSortHead('firstTs')}${wrongSortHead('wrongN')}${wrongSortHead('latestOk')}<th scope="col">题目摘要</th><th scope="col">笔记与错因</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="card empty"><p class="muted" style="margin:0">${all.length?'该科目暂时没有错题。':'还没有错题。答错的题会自动列在这里。'}</p></div>`}</section>`;
 }
@@ -1053,6 +1071,7 @@ function viewMore() {
   </section><aside class="colside">
     <div class="card stack"><h2>设置</h2>
       <div class="field"><div class="label">外观</div><div class="seg">${[['auto', '跟随系统'], ['light', '浅色'], ['dark', '深色']].map(([k, n]) => `<button type="button" data-theme="${k}" aria-pressed="${c.theme === k}">${n}</button>`).join('')}</div></div>
+      <div class="field wide"><div class="label">电脑端文字宽度</div>${widthButtons()}<span class="small muted">记在当前浏览器里。</span></div>
       <div class="field"><div class="label">阅读字号</div><div class="seg">${[[14,'最小'],[16,'小字'],[18,'紧凑'],[20,'标准'],[22,'大字'],[24,'特大']].map(([n,label])=>`<button type="button" data-size="${n}" aria-pressed="${readingSize()===n}">${label}</button>`).join('')}</div></div>
     </div>
     <div class="card stack"><h2>在其他账号使用</h2><p class="small muted" style="margin:0">每个账号使用独立的本机空间和私有云数据。换设备登录同一账号，会自动载入进度和云端题库。不同账号之间需要自行导出、导入备份；未登录时的旧数据不会自动上传到账号。</p></div>
@@ -1089,6 +1108,7 @@ function bindView() {
     else if (d.wbopen !== undefined) openWbItem(+d.wbopen);
     else if (d.delbank) { if (await confirmBox(`删除这台设备上的“${CODES[d.delbank]}”题库？做题记录会保留。`, '删除')) { await IDB.del('banks', d.delbank); await IDB.del('pdfs', d.delbank); await loadBanks(); render(); } }
     else if (b.id === 'doimport') doImport();
+    else if (d.width) { setReadingWidth(d.width); }
     else if (d.size) { setReadingSize(+d.size); }
     else if (d.theme) { ST.cfg.theme = d.theme; touchCfg(); applyTheme(); render(); }
     else if (d.act === 'backup') exportBackup();
@@ -1240,7 +1260,7 @@ function originalExplHTML(q) {
 function explHTML(q) { return window.MBETeaching.panel(q); }
 function wbPanel(q) {
   const r = ST.recs[q.id], w = wbState(r), rc = r?.r?.[0] || 0;
-  const hist = (r?.a || []).slice(-8).map(x => `<span class="tag ${x[3] ? '' : 'bad'}">${x[2] || '未答'}${x[3] ? ' 对' : ' 错'}${x[4] ? '·' + CONF[x[4]] : ''}</span>`).join(' ');
+  const hist = (r?.a || []).slice(-8).map(x => `<span class="tag ${x[3] ? 'ok' : 'bad'}">${x[2] || '未答'}${x[3] ? ' 对' : ' 错'}${x[4] ? '·' + CONF[x[4]] : ''}</span>`).join(' ');
   return `<section class="wbp" aria-label="错题记录"><div class="row between"><b>错题记录</b><span class="small muted">${w.wrongN ? `累计做错 ${w.wrongN} 次` : '尚无错题记录'}</span></div><div class="field"><div class="label">错因</div><div class="chips">${REASONS.map(([c,n]) => `<button type="button" class="chip pill" data-q="reason" data-v="${c}" aria-pressed="${rc===c}">${n}</button>`).join('')}</div></div><div class="field"><label class="label" for="note">我的一句话规则</label><textarea id="note" placeholder="用自己的话写下这题考的规则">${esc(r?.n?.[0] || '')}</textarea></div><div class="row small muted">${hist}</div></section>`;
 }
 function renderActive() {
@@ -1292,9 +1312,11 @@ function renderActive() {
       ${review ? '' : `<button class="qbtn" data-q="flag" aria-pressed="${flagged}" aria-label="标记本题">${I.flag}<span class="wide">标记</span></button>`}
       ${timeTxt ? `<div class="timer">${I.clock}<span>${timeTxt}</span></div>` : ''}
       ${right}</div></header>
-    <div class="qwrap"><nav class="qnav" aria-label="题号">${compact ? '<div class="study-quiz-note">附近题号</div>' : ''}<div class="qgrid">${nav}</div><div class="legend">${review || s.mode !== 'exam' ? '<span><i style="background:var(--ink)"></i>对</span><span><i style="background:var(--bad-weak)"></i>错</span>' : '<span><i style="background:var(--accent-weak)"></i>已作答</span>'}<span><i style="background:var(--flag);border-radius:50%;width:8px;height:8px;margin:0 8px 0 2px"></i>已标记</span></div></nav>
+    <div class="qwrap"><nav class="qnav" aria-label="题号">${compact ? '<div class="study-quiz-note">附近题号</div>' : ''}<div class="qgrid">${nav}</div><div class="legend">${review || s.mode !== 'exam' ? '<span><i style="background:var(--ok)"></i>对</span><span><i style="background:var(--bad)"></i>错</span>' : '<span><i style="background:var(--accent-weak)"></i>已作答</span>'}<span><i style="background:var(--flag);border-radius:50%;width:8px;height:8px;margin:0 8px 0 2px"></i>已标记</span></div></nav>
     <main class="qmain"><div class="qcol">
-      <div class="qmeta">${meta}<div class="reading-tools" role="group" aria-label="阅读字号"><button class="btn" data-q="smaller" aria-label="缩小字号" ${readingSize()===14?'disabled':''}>A−</button><button class="btn" data-q="larger" aria-label="放大字号" ${readingSize()===24?'disabled':''}>A+</button></div></div>
+      <div class="qmeta">${meta}<div class="reading-tools">
+        <div class="quiz-width wide"><span>文字宽度</span>${widthButtons()}</div>
+        <div class="size-toggle" role="group" aria-label="阅读字号"><button class="btn" data-q="smaller" aria-label="缩小字号" ${readingSize()===14?'disabled':''}>A−</button><button class="btn" data-q="larger" aria-label="放大字号" ${readingSize()===24?'disabled':''}>A+</button></div></div></div>
       <section class="question-paper" lang="en" aria-labelledby="question-title">
         <h1 class="question-title" id="question-title">QUESTION ${A.pos + 1}</h1>
         <div class="stem" id="stem" tabindex="-1">${q.stem.map((p) => `<p>${hlText(p, s.hl[qid])}</p>`).join('')}</div>
@@ -1318,6 +1340,7 @@ function bindQuiz() {
     if (d.opt) { if (A.view === 'review' || (s.mode !== 'exam' && s.sub[q.id]) || s.done && s.mode === 'exam') return; s.ans[q.id] = d.opt; if ((s.st[q.id] || '').includes(d.opt)) s.st[q.id] = s.st[q.id].replace(d.opt, ''); touchSession(s); renderActive(); return; }
     if (d.strike) { const cur = s.st[q.id] || ''; s.st[q.id] = cur.includes(d.strike) ? cur.replace(d.strike, '') : cur + d.strike; if (s.ans[q.id] === d.strike && s.st[q.id].includes(d.strike)) delete s.ans[q.id]; touchSession(s); renderActive(); return; }
     if (d.goto !== undefined) { moveTo(+d.goto); closeSheet(); return; }
+    if (d.width) { setReadingWidth(d.width); return; }
     switch (d.q) {
       case 'smaller': setReadingSize(readingSize()-2); break;
       case 'larger': setReadingSize(readingSize()+2); break;
@@ -1519,6 +1542,7 @@ async function exportDocx(ids, title) {
 
 // ================= init =================
 async function init() {
+  setReadingWidth(readingWidth());
   $('#app').innerHTML = '<div class="page"><div class="card empty"><div class="muted">正在加载…</div></div></div>';
   await Promise.all([window.MBECloud.prepare(), window.MBESections.prepare(), window.MBEReferences.prepare()]);
   const durable = await IDB.open();
