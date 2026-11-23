@@ -13,7 +13,6 @@ window.MBEPractice = (() => {
   const attempts = r => Array.isArray(r?.a) ? r.a.filter(hasChoice) : [];
   const answered = r => Array.isArray(r?.a) && r.a.some(hasChoice);
   const arrow = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const mark = '<svg width="33" height="32" viewBox="0 0 34 34" fill="none" aria-hidden="true"><path d="M17 8.5c-4.6-3.1-9.3-3.4-14.5-1.7V25c4.9-1.8 9.8-1.4 14.5 1.7m0-18.2c4.6-3.1 9.3-3.4 14.5-1.7V25c-4.9-1.8-9.8-1.4-14.5 1.7m0-18.2v18.2M5.5 28.7c3.8-.8 7.6-.25 11.5 2 3.9-2.25 7.7-2.8 11.5-2" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const companionOrder = ['CIV', 'CL', 'CON', 'CRIM', 'EVI', 'RP', 'TOR'];
   const groupEn = { CON: 'Contracts', TOR: 'Torts', CRIM: 'Criminal Law & Procedure', EVI: 'Evidence', CIV: 'Civil Procedure', CL: 'Constitutional Law', RP: 'Real Property' };
   const empty = () => ({ total: 0, done: 0, firstOk: 0, lastOk: 0, today: 0 });
@@ -114,20 +113,19 @@ window.MBEPractice = (() => {
   }
   function hero(p, prepared) {
     const left = p.total - p.done, cover = pctValue(p.done, p.total);
-    const heading = !prepared ? '你的 MBE 练习室' : p.total && !left ? '日常题库已练完' : '今天，<wbr><span class="study-headline-tail">从一道新题开始</span>';
-    const sub = !prepared ? '正在准备题库，完成后就能开始。' : !p.total ? '当前题库暂无可判分的日常练习题。' : left ? '随练随停。每题提交后，马上看解析。' : '日常题库已全部做过。可以重练，或回看错题。';
+    const sub = !prepared ? '正在载入题库。' : !p.total ? '当前题库暂无可判分的日常练习题。' : left ? '每题提交后即可查看解析。' : '日常题库已全部做过。可以重练或回看错题。';
     return `<section class="study-hero" aria-labelledby="practice-title">
-      <div class="study-intro"><div class="study-eyebrow"><span></span> MBE 练习室</div>
-        <h1 id="practice-title">${heading}</h1><p>${sub}</p>
+      <div class="study-intro"><h1 id="practice-title">做题</h1><p>${sub}</p>
         <div class="study-hero-actions">
-          ${left ? `<button type="button" class="btn study-start" id="startfree" data-launch="daily">开始未做题 <span>${num(left)} 题</span>${arrow}</button>` : p.done ? `<button type="button" class="btn study-start" data-launch="daily" data-practice-pool="done">重练已做题 ${arrow}</button>` : `<button type="button" class="btn study-start" ${prepared ? 'disabled' : 'data-builtin-retry'}>${prepared ? '暂无新题' : '重新准备题库'}</button>`}
-          ${p.total ? `<button type="button" class="study-hero-link" data-study-scroll="practice-subjects">按科目与章节 ${arrow}</button>` : ''}
+          ${left ? `<button type="button" class="btn primary study-start" id="startfree" data-launch="daily">开始未做题 <span>${num(left)} 题</span>${arrow}</button>` : p.done ? `<button type="button" class="btn primary study-start" data-launch="daily" data-practice-pool="done">重练已做题 ${arrow}</button>` : `<button type="button" class="btn study-start" ${prepared ? 'disabled' : 'data-builtin-retry'}>${prepared ? '暂无新题' : '重新准备题库'}</button>`}
+          ${p.total ? `<button type="button" class="study-hero-link" data-study-scroll="practice-subjects">选科目与章节 ${arrow}</button>` : ''}
         </div>
       </div>
-      <div class="study-hero-meter" aria-label="全科已做 ${p.done} / ${p.total}，覆盖 ${cover}%">
-        <div class="study-seal" style="--study-cover:${cover}%"><div>${mark}<strong>${cover}%</strong></div></div>
-        <div><span class="study-meter-caption">日常题库覆盖</span><strong>${num(p.done)} <span>/ ${num(p.total)} 题</span></strong></div>
-      </div>
+      ${p.total ? `<div class="study-hero-meter">
+        <div><span>日常题库覆盖</span><strong>${cover}%</strong></div>
+        <div class="bar" role="img" aria-label="已做 ${p.done} / ${p.total} 题"><i style="width:${cover}%"></i></div>
+        <span>已做 ${num(p.done)} / ${num(p.total)} 题</span>
+      </div>` : ''}
     </section>`;
   }
   function overview(p) {
@@ -150,7 +148,7 @@ window.MBEPractice = (() => {
       </button>`;
     }).join('');
     return `<section class="study-subjects" aria-labelledby="practice-subjects">
-      <div class="study-section-head"><div><span class="study-kicker">学 习 进 度</span><h2 id="practice-subjects" tabindex="-1">各科进度</h2></div><p>点选科目，查看章节与练习进度。</p></div>
+      <div class="study-section-head"><h2 id="practice-subjects" tabindex="-1">各科进度</h2><p>点选科目，查看章节与练习进度。</p></div>
       <div class="study-subject-grid">${cards}</div>
     </section>`;
   }
@@ -182,18 +180,13 @@ window.MBEPractice = (() => {
         ${selectedNew ? `<button type="button" class="btn primary" data-launch="selection">开始所选章节 ${arrow}</button>` : selectedDone ? `<button type="button" class="btn" data-launch="selection" data-practice-pool="done">重练所选章节 ${arrow}</button>` : ''}
       </div></div>` : '';
     return `<section class="study-chapters" aria-labelledby="practice-chapters"><div class="study-chapters-head">
-      <div><span class="study-kicker">章 节 练 习</span><h2 id="practice-chapters" tabindex="-1">${focused.n}</h2>
+      <div><h2 id="practice-chapters" tabindex="-1">${focused.n}章节</h2>
       <p>${available ? '可直接勾选整章，也可跨科目多选。' : '章节目录暂未载入，仍可按科目练习。'}</p></div>
       <div class="study-chapters-actions"><button type="button" class="study-text-btn" data-study-scroll="practice-subjects">切换科目</button>${left ? `<button type="button" class="btn primary" data-launch="subject">做这科的 ${num(left)} 道新题 ${arrow}</button>` : p.done ? `<button type="button" class="btn" data-launch="subject" data-practice-pool="done">重练这科 ${arrow}</button>` : ''}</div>
       </div>${selectedBar}
       ${available ? `<div class="study-legend" aria-label="进度条图例"><span><i class="study-bar-right"></i>最近答对</span><span><i class="study-bar-missed"></i>待巩固</span><span><i class="study-bar-unseen"></i>未做</span></div>
       <div class="study-chapter-grid" role="group" aria-label="${focused.n}整章多选">${rows}${unmapped?.total ? chapterCard('unassigned','待分节',unmapped,selection,true) : ''}</div>` : ''}
       </section>`;
-  }
-  function resumes() {
-    const active = Object.values(ST.sessions).filter(s => !s.done && answeredCount(s) > 0).sort((a,b) => b.u - a.u).slice(0,3);
-    if (!active.length) return '';
-    return `<section class="study-resume" aria-labelledby="study-resume-title"><h2 id="study-resume-title">继续上次</h2>${active.map(s => `<div><div><strong>${esc(s.title)}</strong><span>${s.mode === 'exam' ? `已选 ${answeredCount(s)} / ${s.qids.length} 题` : `本轮已提交 ${answeredCount(s)} 题`}${s.mode === 'exam' && s.lim ? ' · 剩余 ' + fmtSec(s.lim - s.el) : ''}</span></div><button type="button" class="btn" data-resume="${esc(s.id)}">继续 ${arrow}</button></div>`).join('')}</section>`;
   }
   function alternatives(p) {
     const wb = wbItems({all:true}).length;
@@ -206,7 +199,7 @@ window.MBEPractice = (() => {
       return `<button type="button" class="btn study-mock" data-mock="${k}"><strong>第 ${k} 场</strong><span>${s?.done ? '已完成 · ' + mockScore(s) : s && answeredCount(s) ? '进行中' : '100 题 · 3 小时'}</span>${arrow}</button>`;
     }).join('');
     return `<section class="study-alternatives" aria-labelledby="study-alternatives-title">
-      <div class="study-section-head"><div><span class="study-kicker"> 换 一 种 练 法 </span><h2 id="study-alternatives-title">专项与模考</h2></div></div>
+      <div class="study-section-head"><h2 id="study-alternatives-title">专项与模考</h2></div>
       <div class="study-alt-grid"><a class="study-alt-link" href="#wrongbook">${I.book}<span><b>回顾错题</b><small>${wb ? `错题本中有 ${num(wb)} 题` : '答错的题会收在这里'}</small></span>${arrow}</a>
       <button type="button" class="study-alt-link" data-launch="daily" data-practice-pool="done" ${p.done ? '' : 'disabled'}>${I.grid}<span><b>重练已做题</b><small>${p.done ? `从已做的 ${num(p.done)} 题中练习` : '完成第一题后可重练'}</small></span>${arrow}</button>
       <details class="study-detail" data-home-detail="practice" ${HOME_DETAILS.practice ? 'open' : ''}><summary><span><b>定量练习与考试</b><small>自选题数、题池和时限</small></span></summary>
@@ -228,13 +221,13 @@ window.MBEPractice = (() => {
   }
   function view() {
     const model = stats(), p = model.all, focused = focusGroup(), selection = selected();
-    return `<main class="study-home">${hero(p,!bankEmpty())}${overview(p)}${resumes()}
+    return `<div class="study-home">${hero(p,!bankEmpty())}${overview(p)}
       ${focused ? subjectCards(model,focused,selection) + chapters(model,focused,selection) : ''}
       ${!bankEmpty() ? alternatives(p) : ''}
       <details class="study-detail study-stat-detail" data-home-detail="stats" ${HOME_DETAILS.stats || VIEW === 'stats' ? 'open' : ''}>
         <summary id="practice-stats" tabindex="-1"><span><b>详细统计</b><small>近 14 天、各科正确率与错因</small></span>${I.chart}</summary>
         <div class="study-detail-body"><p class="small muted study-stat-note">详细统计也计入已作答的 NCBE 模考题。</p>${viewStats()}</div>
-      </details>${backupBanner()}</main>`;
+      </details>${backupBanner()}</div>`;
   }
-  return { view, ids, launch, showGroup, goTo, answered, attempts, blockScope, mark };
+  return { view, ids, launch, showGroup, goTo, answered, attempts, blockScope };
 })();
