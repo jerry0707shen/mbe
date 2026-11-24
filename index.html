@@ -360,7 +360,7 @@ input,select,textarea{font-size:16px!important;max-width:100%}
 <script src="./cloud.js?v=20261116-sync"></script>
 <script src="./study.js?v=20261116-index"></script>
 <script src="./references.js?v=20261116-2"></script>
-<script src="./teaching.js?v=20261123-cache"></script>
+<script src="./teaching.js?v=20261124-zh"></script>
 <script src="./builtin.js?v=20261113-1"></script>
 <script src="./practice.js?v=20261123"></script>
 <script>
@@ -1239,23 +1239,6 @@ function hlText(txt, snips) {
   let h = esc(txt);
   for (const s of snips || []) { const e = esc(s); if (e.length < 2) continue; const i = h.indexOf(e); if (i >= 0) h = h.slice(0, i) + '<mark>' + e + '</mark>' + h.slice(i + e.length); }
   return h;
-}
-function originalExplHTML(q) {
-  const parts = []; let tb = [];
-  const flush = () => { if (tb.length) { parts.push(`<div class="tblk">${tb.map(esc).join('\n')}</div>`); tb = []; } };
-  for (const p of q.expl) {
-    if (p.startsWith('\u0001')) { tb.push(p.slice(1)); continue; }
-    flush();
-    const m = /^\((Choices? [^)]{1,40})\)\s*(.*)$/.exec(p);
-    parts.push(m ? `<p><strong>(${esc(m[1])})</strong> ${esc(m[2])}</p>` : `<p>${esc(p)}</p>`);
-  }
-  flush();
-  const hasT = q.expl.some((p) => p.startsWith('\u0001'));
-  return `<section class="expl" aria-label="解析"><div class="row between"><h3>Explanation</h3><button class="btn" style="min-height:36px;font-size:13px" data-q="orig">${hasT ? '本题有表格，查看 PDF 原页' : '查看 PDF 原页'}</button></div>
-    <div class="pages hide" id="origbox"></div>
-    <div class="etext" lang="en">${parts.join('')}</div>
-    ${q.obj ? `<div class="obj"><div class="k">Educational objective</div><div>${esc(q.obj)}</div></div>` : ''}
-    ${q.refs && q.refs.length ? `<details class="refs"><summary>References</summary><ul>${q.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}</section>`;
 }
 function explHTML(q) { return window.MBETeaching.panel(q); }
 function wbPanel(q) {
